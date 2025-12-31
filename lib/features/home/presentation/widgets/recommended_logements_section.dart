@@ -20,7 +20,7 @@ class RecommendedLogementsSection extends ConsumerWidget {
         // En-tête avec personnalisation
         preferencesAsync.when(
           data: (prefs) {
-            if (prefs != null && prefs.isCompleted) {
+            if (prefs != null && prefs.hasPreferences) {
               return _buildPersonalizedHeader(prefs.divinitesPreferees);
             }
             return _buildDefaultHeader();
@@ -51,7 +51,7 @@ class RecommendedLogementsSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildPersonalizedHeader(List<String> divinites) {
+  Widget _buildPersonalizedHeader(List<int> divinites) {
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 16),

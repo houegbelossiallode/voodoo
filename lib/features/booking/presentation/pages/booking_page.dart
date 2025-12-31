@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
 
@@ -21,7 +22,7 @@ class _BookingPageState extends State<BookingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.booking)),
+      appBar: const CustomAppBar(title: AppStrings.booking),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

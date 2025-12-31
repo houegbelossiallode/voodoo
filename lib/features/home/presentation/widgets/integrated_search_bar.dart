@@ -35,15 +35,18 @@ class IntegratedSearchBar extends ConsumerWidget {
           child: Column(
             children: [
               // Destination
-              InkWell(
-                onTap: () => _showDestinationPicker(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: AppColors.primary),
-                      const SizedBox(width: 12),
-                      Expanded(
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: AppColors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          print('🟢 Zone Destination cliquée');
+                          _showDestinationPicker(context, ref);
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -70,35 +73,39 @@ class IntegratedSearchBar extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (filters.destination != null)
-                        IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            ref
-                                .read(searchFiltersProvider.notifier)
-                                .setDestination(null);
-                          },
+                    ),
+                    if (filters.destination != null)
+                      InkWell(
+                        onTap: () {
+                          print('🔴 Bouton X Destination cliqué');
+                          ref
+                              .read(searchFiltersProvider.notifier)
+                              .setDestination(null);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(Icons.clear, size: 20, color: Colors.red),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
 
               const Divider(height: 1),
 
               // Dates
-              InkWell(
-                onTap: () => _showDatePicker(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, color: AppColors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          print('🟢 Zone Dates cliquée');
+                          _showDatePicker(context, ref);
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -124,32 +131,39 @@ class IntegratedSearchBar extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (filters.dateDebut != null || filters.dateFin != null)
-                        IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            ref
-                                .read(searchFiltersProvider.notifier)
-                                .setDates(null, null);
-                          },
+                    ),
+                    if (filters.dateDebut != null || filters.dateFin != null)
+                      InkWell(
+                        onTap: () {
+                          print('🔴 Bouton X Dates cliqué');
+                          ref
+                              .read(searchFiltersProvider.notifier)
+                              .setDates(null, null);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(Icons.clear, size: 20, color: Colors.red),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
 
               const Divider(height: 1),
 
               // Voyageurs
-              InkWell(
-                onTap: () => _showGuestsSelector(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.people, color: AppColors.primary),
-                      const SizedBox(width: 12),
-                      Expanded(
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people, color: AppColors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          print('🟢 Zone Voyageurs cliquée');
+                          _showGuestsSelector(context, ref);
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -177,17 +191,21 @@ class IntegratedSearchBar extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (filters.nbVoyageurs != null)
-                        IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            ref
-                                .read(searchFiltersProvider.notifier)
-                                .setNbVoyageurs(null);
-                          },
+                    ),
+                    if (filters.nbVoyageurs != null)
+                      InkWell(
+                        onTap: () {
+                          print('🔴 Bouton X Voyageurs cliqué');
+                          ref
+                              .read(searchFiltersProvider.notifier)
+                              .setNbVoyageurs(null);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(Icons.clear, size: 20, color: Colors.red),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -273,7 +291,7 @@ class IntegratedSearchBar extends ConsumerWidget {
     required VoidCallback onTap,
     VoidCallback? onClear,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -304,11 +322,17 @@ class IntegratedSearchBar extends ConsumerWidget {
             if (isActive && onClear != null) ...[
               const SizedBox(width: 4),
               GestureDetector(
-                onTap: onClear,
-                child: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: AppColors.primary,
+                onTap: () {
+                  onClear();
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: const Icon(
+                    Icons.close,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],

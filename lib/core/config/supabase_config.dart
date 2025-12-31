@@ -58,8 +58,9 @@ class SupabaseConfig {
   static const bool enableEmailAuth = true;
   static const bool enablePhoneAuth = true;
   static const bool enableGoogleAuth = true;
-  static const bool enableFacebookAuth = true;
-  static const bool enableAppleAuth = true;
+  static const bool enableFacebookAuth =
+      false; // Désactivé - Configuration incomplète
+  static const bool enableAppleAuth = false; // Désactivé - iOS uniquement
 
   // OAuth Configuration
   // IMPORTANT: À configurer dans Supabase Dashboard → Authentication → Providers

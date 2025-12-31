@@ -35,18 +35,18 @@ class SearchFiltersNotifier extends StateNotifier<SearchFilters> {
   }
 
   /// Met à jour les divinités
-  void setDivinites(List<String> divinites) {
+  void setDivinites(List<int> divinites) {
     state = state.copyWith(divinites: divinites);
   }
 
   /// Ajoute une divinité
-  void addDivinite(String divinite) {
+  void addDivinite(int divinite) {
     final newList = [...state.divinites, divinite];
     state = state.copyWith(divinites: newList);
   }
 
   /// Retire une divinité
-  void removeDivinite(String divinite) {
+  void removeDivinite(int divinite) {
     final newList = state.divinites.where((d) => d != divinite).toList();
     state = state.copyWith(divinites: newList);
   }
@@ -95,7 +95,7 @@ class SearchFiltersNotifier extends StateNotifier<SearchFilters> {
 
   /// Applique les filtres depuis les préférences utilisateur
   void applyFromPreferences({
-    required List<String> divinites,
+    required List<int> divinites,
     required bool assisterRituel,
   }) {
     state = state.copyWith(

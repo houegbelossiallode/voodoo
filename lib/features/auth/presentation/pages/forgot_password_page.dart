@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 
@@ -66,11 +67,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mot de passe oublié'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: const CustomAppBar(title: 'Mot de passe oublié'),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

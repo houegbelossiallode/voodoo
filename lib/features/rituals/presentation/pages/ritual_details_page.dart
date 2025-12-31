@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/rituals/presentation/providers/ritual_provider.dart';
 import 'package:vodou/features/rituals/domain/models/ritual.dart';
@@ -18,13 +19,13 @@ class RitualDetailsPage extends ConsumerWidget {
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) => Scaffold(
-        appBar: AppBar(title: const Text('Erreur')),
+        appBar: const CustomAppBar(title: 'Erreur'),
         body: Center(child: Text('Erreur: $error')),
       ),
       data: (ritual) {
         if (ritual == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Rituel introuvable')),
+            appBar: const CustomAppBar(title: 'Rituel introuvable'),
             body: const Center(child: Text('Ce rituel n\'existe pas')),
           );
         }

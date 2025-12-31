@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/booking/presentation/providers/reservation_provider.dart';
 import 'package:vodou/features/projet/presentation/providers/projet_provider.dart';
@@ -64,7 +65,7 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
     final reservationState = ref.watch(reservationNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Réservation'), elevation: 0),
+      appBar: const CustomAppBar(title: 'Réservation'),
       body: Form(
         key: _formKey,
         child: ListView(

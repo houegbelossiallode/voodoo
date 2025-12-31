@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
+import 'package:vodou/core/services/supabase_service.dart';
+import 'package:vodou/features/home/data/repositories/divinite_repository.dart';
+import 'package:vodou/features/home/domain/models/divinite.dart';
 
 /// Page du questionnaire interactif pour les préférences culturelles
 class QuestionnairePage extends ConsumerStatefulWidget {
@@ -17,73 +21,88 @@ class QuestionnairePage extends ConsumerStatefulWidget {
 
 class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
   int _currentStep = 0;
-  final List<String> _selectedDivinites = [];
+  final List<int> _selectedDivinites = [];
   bool _assisterRituel = false;
+  List<Divinite> _divinites = [];
+  bool _isLoadingDivinites = true;
 
-  // Liste des divinités avec leurs icônes et descriptions
-  final List<Map<String, dynamic>> _divinites = [
-    {
-      'id': 'sakpata',
-      'nom': 'Sakpata',
-      'icon': Icons.healing,
-      'color': Colors.brown,
-      'description': 'Divinité de la terre et de la guérison',
-    },
-    {
-      'id': 'mamiwata',
-      'nom': 'Mamiwata',
-      'icon': Icons.water,
-      'color': Colors.blue,
-      'description': 'Déesse des eaux et de la richesse',
-    },
-    {
-      'id': 'legba',
-      'nom': 'Legba',
-      'icon': Icons.door_front_door,
-      'color': Colors.orange,
-      'description': 'Gardien des portes et des chemins',
-    },
-    {
-      'id': 'hevioso',
-      'nom': 'Hevioso',
-      'icon': Icons.flash_on,
-      'color': Colors.red,
-      'description': 'Dieu du tonnerre et de la foudre',
-    },
-    {
-      'id': 'gu',
-      'nom': 'Gu',
-      'icon': Icons.hardware,
-      'color': Colors.grey,
-      'description': 'Dieu du fer et de la guerre',
-    },
-    {
-      'id': 'dan',
-      'nom': 'Dan',
-      'icon': Icons.waves,
-      'color': Colors.teal,
-      'description': 'Serpent arc-en-ciel, symbole de richesse',
-    },
-  ];
+  // Icônes et couleurs par défaut pour les divinités
+  final Map<String, Map<String, dynamic>> _diviniteStyles = {
+    'Sakpata': {'icon': Icons.healing, 'color': Colors.brown},
+    'Mamiwata': {'icon': Icons.water, 'color': Colors.blue},
+    'Legba': {'icon': Icons.door_front_door, 'color': Colors.orange},
+    'Hevioso': {'icon': Icons.flash_on, 'color': Colors.red},
+    'Gu': {'icon': Icons.hardware, 'color': Colors.grey},
+    'Dan': {'icon': Icons.waves, 'color': Colors.teal},
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDivinites();
+    _loadExistingPreferences();
+  }
+
+  Future<void> _loadDivinites() async {
+    try {
+      final repository = DiviniteRepository(SupabaseService.instance);
+      final divinites = await repository.getAllDivinites();
+      setState(() {
+        _divinites = divinites;
+        _isLoadingDivinites = false;
+      });
+    } catch (e) {
+      print('⚠️ Erreur chargement divinités: $e');
+      setState(() {
+        _isLoadingDivinites = false;
+      });
+    }
+  }
+
+  Future<void> _loadExistingPreferences() async {
+    // Charger les préférences existantes si on est en mode modification
+    if (!widget.isFirstTime) {
+      try {
+        print('🔍 Chargement des préférences existantes...');
+        final preferencesAsync = await ref.read(
+          currentUserPreferencesProvider.future,
+        );
+
+        if (preferencesAsync != null) {
+          print('✅ Préférences trouvées:');
+          print('   - Divinités: ${preferencesAsync.divinitesPreferees}');
+          print('   - Assister rituel: ${preferencesAsync.assisterRituel}');
+
+          setState(() {
+            _selectedDivinites.clear();
+            _selectedDivinites.addAll(preferencesAsync.divinitesPreferees);
+            _assisterRituel = preferencesAsync.assisterRituel;
+          });
+        } else {
+          print('⚠️ Aucune préférence existante trouvée');
+        }
+      } catch (e) {
+        print('⚠️ Erreur chargement préférences: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          widget.isFirstTime
-              ? 'Personnalisez votre expérience'
-              : 'Modifier mes préférences',
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        leading: widget.isFirstTime
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
+      appBar: CustomAppBar(
+        title: widget.isFirstTime
+            ? 'Personnalisez votre expérience'
+            : 'Mes préférences',
+        leading: !widget.isFirstTime
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  context.go(AppRouter.home);
+                },
+              )
+            : null,
       ),
       body: Column(
         children: [
@@ -144,6 +163,23 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
 
   // Étape 1 : Sélection des divinités
   Widget _buildDivinitesStep() {
+    if (_isLoadingDivinites) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Chargement des divinités...'),
+          ],
+        ),
+      );
+    }
+
+    if (_divinites.isEmpty) {
+      return const Center(child: Text('Aucune divinité disponible'));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -175,7 +211,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
           itemCount: _divinites.length,
           itemBuilder: (context, index) {
             final divinite = _divinites[index];
-            final isSelected = _selectedDivinites.contains(divinite['id']);
+            final isSelected = _selectedDivinites.contains(divinite.id);
 
             return _buildDiviniteCard(divinite, isSelected);
           },
@@ -184,29 +220,35 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
     );
   }
 
-  Widget _buildDiviniteCard(Map<String, dynamic> divinite, bool isSelected) {
+  Widget _buildDiviniteCard(Divinite divinite, bool isSelected) {
+    // Récupérer le style pour cette divinité (icône et couleur)
+    final style =
+        _diviniteStyles[divinite.nom] ??
+        {'icon': Icons.star, 'color': Colors.purple};
+    final icon = style['icon'] as IconData;
+    final color = style['color'] as Color;
     return GestureDetector(
       onTap: () {
         setState(() {
           if (isSelected) {
-            _selectedDivinites.remove(divinite['id']);
+            _selectedDivinites.remove(divinite.id);
           } else {
-            _selectedDivinites.add(divinite['id']);
+            _selectedDivinites.add(divinite.id);
           }
         });
       },
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? divinite['color'].withOpacity(0.1) : Colors.white,
+          color: isSelected ? color.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? divinite['color'] : AppColors.greyLight,
+            color: isSelected ? color : AppColors.greyLight,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: divinite['color'].withOpacity(0.3),
+                color: color.withOpacity(0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -218,25 +260,25 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: divinite['color'].withOpacity(0.2),
+                color: color.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: Icon(divinite['icon'], size: 40, color: divinite['color']),
+              child: Icon(icon, size: 40, color: color),
             ),
             const SizedBox(height: 12),
             Text(
-              divinite['nom'],
+              divinite.nom,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? divinite['color'] : AppColors.textPrimary,
+                color: isSelected ? color : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                divinite['description'],
+                divinite.description ?? '',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 12,
@@ -458,7 +500,22 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
   }
 
   Future<void> _savePreferences() async {
+    // Afficher un indicateur de chargement
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        ),
+      ),
+    );
+
     try {
+      print('💾 Début de la sauvegarde des préférences...');
+      print('   Divinités: $_selectedDivinites');
+      print('   Assister rituel: $_assisterRituel');
+
       final notifier = ref.read(userPreferencesNotifierProvider.notifier);
 
       await notifier.savePreferences(
@@ -466,28 +523,55 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
         assisterRituel: _assisterRituel,
       );
 
+      print('✅ Préférences sauvegardées avec succès');
+
+      // Invalider les providers pour rafraîchir les données
+      print('🔄 Rafraîchissement des providers...');
+      ref.invalidate(currentUserPreferencesProvider);
+      ref.invalidate(userPreferencesNotifierProvider);
+
       if (mounted) {
+        // Fermer l'indicateur de chargement
+        Navigator.of(context).pop();
+
+        // Afficher le message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Préférences enregistrées avec succès !'),
+            content: Text('✅ Préférences enregistrées avec succès !'),
             backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
           ),
         );
 
-        if (widget.isFirstTime) {
-          // Rediriger vers la page d'accueil
-          context.go(AppRouter.home);
-        } else {
-          // Fermer la page
-          Navigator.pop(context);
-        }
+        // Utiliser addPostFrameCallback pour garantir que la navigation se fait après le rendu
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            if (widget.isFirstTime) {
+              // Rediriger vers la page d'accueil
+              print('🏠 Redirection vers home (première fois)');
+              context.go(AppRouter.home);
+            } else {
+              // Retourner au profil (on vient via context.go, donc on utilise context.go)
+              print('🔙 Retour au profil');
+              context.go(AppRouter.home);
+            }
+          }
+        });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Erreur lors de la sauvegarde: $e');
+      print('📋 Stack trace: $stackTrace');
+
       if (mounted) {
+        // Fermer l'indicateur de chargement
+        Navigator.of(context).pop();
+
+        // Afficher le message d'erreur
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text('❌ Erreur: $e'),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

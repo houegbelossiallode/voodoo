@@ -14,6 +14,7 @@ class User {
   final DateTime? emailVerifiedAt;
   final String actif;
   final int roleId;
+  final String? role; // Libellé du rôle (récupéré via jointure)
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -33,11 +34,22 @@ class User {
     this.emailVerifiedAt,
     this.actif = 'OUI',
     required this.roleId,
+    this.role,
     required this.createdAt,
     this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Récupérer le libellé du rôle depuis la jointure
+    String? roleLibelle;
+    if (json['role'] != null) {
+      if (json['role'] is Map) {
+        roleLibelle = json['role']['libelle'] as String?;
+      } else if (json['role'] is String) {
+        roleLibelle = json['role'] as String;
+      }
+    }
+
     return User(
       id: json['id'] as int,
       supabaseId: json['supabase_id'] as String?,
@@ -64,7 +76,10 @@ class User {
           : null,
       actif: json['actif'] as String? ?? 'OUI',
       roleId: json['role_id'] as int,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      role: roleLibelle,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
@@ -111,6 +126,7 @@ class User {
     DateTime? emailVerifiedAt,
     String? actif,
     int? roleId,
+    String? role,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -130,6 +146,7 @@ class User {
       emailVerifiedAt: emailVerifiedAt ?? this.emailVerifiedAt,
       actif: actif ?? this.actif,
       roleId: roleId ?? this.roleId,
+      role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -137,49 +154,75 @@ class User {
 }
 
 class UserPreferences {
-  final List<String> interestedDivinities;
-  final bool wantsToAttendRituals;
-  final List<String> culturalInterests;
+  final int? id;
+  final int userId;
+  final List<int> divinitesPreferees; // IDs des divinités
+  final bool assisterRituel;
+  final String preferredCurrency;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   UserPreferences({
-    this.interestedDivinities = const [],
-    this.wantsToAttendRituals = false,
-    this.culturalInterests = const [],
+    this.id,
+    required this.userId,
+    this.divinitesPreferees = const [],
+    this.assisterRituel = false,
+    this.preferredCurrency = 'XOF',
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
-      interestedDivinities:
-          (json['interested_divinities'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      wantsToAttendRituals: json['wants_to_attend_rituals'] as bool? ?? false,
-      culturalInterests:
-          (json['cultural_interests'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
+      id: json['id'] as int?,
+      userId: json['user_id'] as int,
+      divinitesPreferees: json['divinites_preferees'] != null
+          ? (json['divinites_preferees'] as List<dynamic>)
+                .map((e) => e as int)
+                .toList()
+          : [],
+      assisterRituel: json['assister_rituel'] as bool? ?? false,
+      preferredCurrency: json['preferred_currency'] as String? ?? 'XOF',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'interested_divinities': interestedDivinities,
-      'wants_to_attend_rituals': wantsToAttendRituals,
-      'cultural_interests': culturalInterests,
+      if (id != null) 'id': id,
+      'user_id': userId,
+      'divinites_preferees': divinitesPreferees,
+      'assister_rituel': assisterRituel,
+      'preferred_currency': preferredCurrency,
+      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
   }
 
   UserPreferences copyWith({
-    List<String>? interestedDivinities,
-    bool? wantsToAttendRituals,
-    List<String>? culturalInterests,
+    int? id,
+    int? userId,
+    List<int>? divinitesPreferees,
+    bool? assisterRituel,
+    String? preferredCurrency,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return UserPreferences(
-      interestedDivinities: interestedDivinities ?? this.interestedDivinities,
-      wantsToAttendRituals: wantsToAttendRituals ?? this.wantsToAttendRituals,
-      culturalInterests: culturalInterests ?? this.culturalInterests,
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      divinitesPreferees: divinitesPreferees ?? this.divinitesPreferees,
+      assisterRituel: assisterRituel ?? this.assisterRituel,
+      preferredCurrency: preferredCurrency ?? this.preferredCurrency,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  bool get hasPreferences => divinitesPreferees.isNotEmpty;
 }

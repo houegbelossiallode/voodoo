@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/search/domain/models/search_filters.dart';
 import 'package:vodou/features/search/presentation/providers/search_provider.dart';
@@ -27,8 +28,8 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
     final searchResults = ref.watch(searchResultsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rechercher un logement'),
+      appBar: CustomAppBar(
+        title: 'Rechercher un logement',
         actions: [
           // Bouton pour afficher/masquer les filtres
           IconButton(

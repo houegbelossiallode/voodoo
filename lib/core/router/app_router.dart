@@ -4,19 +4,21 @@ import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/presentation/pages/login_page.dart';
 import 'package:vodou/features/auth/presentation/pages/signup_page.dart';
 import 'package:vodou/features/auth/presentation/pages/forgot_password_page.dart';
-import 'package:vodou/features/home/presentation/pages/main_page.dart';
+import 'package:vodou/features/home/presentation/pages/main_page_wrapper.dart';
 import 'package:vodou/features/accommodation/presentation/pages/accommodation_details_page.dart';
 import 'package:vodou/features/booking/presentation/pages/booking_page_v2.dart';
 import 'package:vodou/features/preferences/presentation/pages/questionnaire_page.dart';
 import 'package:vodou/features/rituals/presentation/pages/ritual_details_page.dart';
 import 'package:vodou/features/messaging/presentation/pages/chat_page.dart';
 import 'package:vodou/features/messaging/presentation/pages/conversations_page.dart';
+import 'package:vodou/features/festivals/presentation/pages/festival_selection_page.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 
 class AppRouter {
   static const String login = '/';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
+  static const String festivalSelection = '/festival-selection';
   static const String questionnaire = '/questionnaire';
   static const String home = '/home';
   static const String search = '/search';
@@ -44,6 +46,8 @@ class AppRouter {
         login,
         signup,
         forgotPassword,
+        festivalSelection,
+        questionnaire,
         home,
         '/search',
         '/favorites',
@@ -55,8 +59,10 @@ class AppRouter {
 
       // Si l'utilisateur est connecté et essaie d'aller sur login/signup
       if (isAuthenticated && isGoingToAuth) {
-        print('🔄 Utilisateur déjà connecté, redirection vers home');
-        return home;
+        print(
+          '🔄 Utilisateur déjà connecté, redirection vers festival-selection',
+        );
+        return festivalSelection;
       }
 
       // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
@@ -88,6 +94,14 @@ class AppRouter {
         builder: (context, state) => const ForgotPasswordPage(),
       ),
       GoRoute(
+        path: festivalSelection,
+        name: 'festival-selection',
+        builder: (context, state) {
+          final isFirstTime = state.extra as bool? ?? false;
+          return FestivalSelectionPage(isFirstTime: isFirstTime);
+        },
+      ),
+      GoRoute(
         path: questionnaire,
         name: 'questionnaire',
         builder: (context, state) {
@@ -98,7 +112,7 @@ class AppRouter {
       GoRoute(
         path: home,
         name: 'home',
-        builder: (context, state) => const MainPage(),
+        builder: (context, state) => const MainPageWrapper(),
       ),
       GoRoute(
         path: accommodationDetails,
@@ -117,10 +131,18 @@ class AppRouter {
       GoRoute(
         path: booking,
         builder: (context, state) {
-          final logement = state.extra as Logement?;
+          Logement? logement;
+
+          // Gérer le cas où state.extra peut être un Logement ou un Map
+          if (state.extra is Logement) {
+            logement = state.extra as Logement;
+          } else if (state.extra is Map<String, dynamic>) {
+            logement = Logement.fromJson(state.extra as Map<String, dynamic>);
+          }
+
           if (logement == null) {
             // Si aucun logement n'est passé, retourner à la page d'accueil
-            return const MainPage();
+            return const MainPageWrapper();
           }
           return BookingPageV2(logement: logement);
         },

@@ -17,7 +17,7 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final divinitesAsync = ref.watch(divinitesProvider);
+    final divinitesAsync = ref.watch(preferredDivinitesProvider);
     final filters = ref.watch(searchFiltersProvider);
 
     // Si des filtres sont actifs, utiliser les résultats de recherche
@@ -29,7 +29,7 @@ class HomePage extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           // Rafraîchir les divinités et les logements
-          ref.invalidate(divinitesProvider);
+          ref.invalidate(preferredDivinitesProvider);
           if (filters.hasFilters) {
             ref.invalidate(searchResultsProvider);
           } else {
@@ -42,24 +42,30 @@ class HomePage extends ConsumerWidget {
             SliverAppBar(
               floating: true,
               snap: true,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppStrings.appName,
+                    'Vodun Days',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                   Text(
                     'Ouidah, Bénin',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                    ),
                   ),
                 ],
               ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined),
+                  color: Colors.white,
                   onPressed: () {
                     // TODO: Navigate to notifications
                   },
@@ -247,17 +253,17 @@ class HomePage extends ConsumerWidget {
     Color color,
   ) {
     final filters = ref.watch(searchFiltersProvider);
-    final isSelected = filters.divinites.contains(divinite.nom);
+    final isSelected = filters.divinites.contains(divinite.id);
 
     return InkWell(
       onTap: () {
         final filtersNotifier = ref.read(searchFiltersProvider.notifier);
         if (isSelected) {
           // Retirer le filtre
-          filtersNotifier.removeDivinite(divinite.nom);
+          filtersNotifier.removeDivinite(divinite.id);
         } else {
           // Ajouter le filtre
-          filtersNotifier.addDivinite(divinite.nom);
+          filtersNotifier.addDivinite(divinite.id);
         }
       },
       borderRadius: BorderRadius.circular(12),

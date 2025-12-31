@@ -34,132 +34,192 @@ class _PriceRangeSelectorState extends ConsumerState<PriceRangeSelector> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Fourchette de prix',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Affichage de la fourchette sélectionnée
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildPriceLabel('Min', _priceRange.start),
-              const Text('-'),
-              _buildPriceLabel('Max', _priceRange.end),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Slider de fourchette
-          RangeSlider(
-            values: _priceRange,
-            min: _minPrice,
-            max: _maxPrice,
-            divisions: 20,
-            activeColor: AppColors.primary,
-            labels: RangeLabels(
-              '${_priceRange.start.toInt()} XOF',
-              '${_priceRange.end.toInt()} XOF',
-            ),
-            onChanged: (RangeValues values) {
-              setState(() {
-                _priceRange = values;
-              });
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Options rapides
-          const Text(
-            'Fourchettes suggérées',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildQuickOption('Économique', 0, 15000),
-              _buildQuickOption('Moyen', 15000, 35000),
-              _buildQuickOption('Confort', 35000, 60000),
-              _buildQuickOption('Luxe', 60000, 100000),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Boutons d'action
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _priceRange = const RangeValues(_minPrice, _maxPrice);
-                    });
-                    ref
-                        .read(searchFiltersProvider.notifier)
-                        .setPrixRange(null, null);
-                  },
-                  child: const Text('Effacer'),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Barre de drag
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.grey,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ref
-                        .read(searchFiltersProvider.notifier)
-                        .setPrixRange(_priceRange.start, _priceRange.end);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+            ),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Fourchette de prix',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Définissez votre budget par nuit',
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
+
+            // Affichage de la fourchette sélectionnée avec design amélioré
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.05),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildPriceLabel('Minimum', _priceRange.start),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
-                  child: const Text('Appliquer'),
-                ),
+                  _buildPriceLabel('Maximum', _priceRange.end),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Slider de fourchette avec meilleur design
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: AppColors.primary.withOpacity(0.2),
+                thumbColor: AppColors.primary,
+                overlayColor: AppColors.primary.withOpacity(0.2),
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
+              ),
+              child: RangeSlider(
+                values: _priceRange,
+                min: _minPrice,
+                max: _maxPrice,
+                divisions: 20,
+                labels: RangeLabels(
+                  '${_priceRange.start.toInt()} XOF',
+                  '${_priceRange.end.toInt()} XOF',
+                ),
+                onChanged: (RangeValues values) {
+                  setState(() {
+                    _priceRange = values;
+                  });
+                },
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Options rapides
+            const Text(
+              'Fourchettes suggérées',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildQuickOption('Économique', 0, 15000),
+                _buildQuickOption('Moyen', 15000, 35000),
+                _buildQuickOption('Confort', 35000, 60000),
+                _buildQuickOption('Luxe', 60000, 100000),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Boutons d'action
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _priceRange = const RangeValues(_minPrice, _maxPrice);
+                      });
+                      ref
+                          .read(searchFiltersProvider.notifier)
+                          .setPrixRange(null, null);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                    ),
+                    child: const Text('Effacer'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      ref
+                          .read(searchFiltersProvider.notifier)
+                          .setPrixRange(_priceRange.start, _priceRange.end);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(16),
+                    ),
+                    child: const Text('Appliquer'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPriceLabel(String label, double price) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
-          '${price.toInt()} XOF',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          '${price.toInt()}',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const Text(
+          'XOF',
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
       ],
     );

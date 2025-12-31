@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vodou/core/constants/app_colors.dart';
@@ -40,7 +41,7 @@ class AccommodationDetailsPage extends ConsumerWidget {
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) => Scaffold(
-        appBar: AppBar(title: const Text('Erreur')),
+        appBar: const CustomAppBar(title: 'Erreur'),
         body: Center(child: Text('Erreur: $error')),
       ),
       data: (logement) {
@@ -90,18 +91,36 @@ class AccommodationDetailsPage extends ConsumerWidget {
             SliverAppBar(
               expandedHeight: 300,
               pinned: true,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               flexibleSpace: FlexibleSpaceBar(
+                title: Text(
+                  logement.titre,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        offset: Offset(0, 1),
+                        blurRadius: 3.0,
+                        color: Color.fromARGB(128, 0, 0, 0),
+                      ),
+                    ],
+                  ),
+                ),
                 background: PhotoCarousel(photos: logement.photos),
               ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.share),
+                  color: Colors.white,
                   onPressed: () {
                     // TODO: Partager
                   },
                 ),
                 IconButton(
                   icon: const Icon(Icons.favorite_outline),
+                  color: Colors.white,
                   onPressed: () {
                     // TODO: Ajouter aux favoris
                   },

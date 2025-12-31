@@ -10,7 +10,7 @@ class KKiaPayConfig {
       'ab96d73fbe041ae08a74e2887480f42bef757dc3';
 
   /// true = production / false = sandbox
-  static const bool isLive = true;
+  static const bool isLive = false;
 
   /// Retourne automatiquement la bonne clé selon le mode
   static String get publicKey => isLive ? publicKeyLive : publicKeySandbox;

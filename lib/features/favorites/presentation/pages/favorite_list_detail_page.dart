@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/favorites/domain/models/favorite.dart';
 import 'package:vodou/features/favorites/presentation/providers/favorite_provider.dart';
@@ -20,8 +21,8 @@ class FavoriteListDetailPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(favoriteList.libelle),
+      appBar: CustomAppBar(
+        title: favoriteList.libelle,
         actions: [
           // Bouton partager
           IconButton(

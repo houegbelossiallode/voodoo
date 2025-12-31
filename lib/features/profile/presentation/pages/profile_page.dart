@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
+import 'package:vodou/features/booking/presentation/pages/my_reservations_page.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -15,7 +17,7 @@ class ProfilePage extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.profile)),
+      appBar: const CustomAppBar(title: AppStrings.profile),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
@@ -131,10 +133,26 @@ class ProfilePage extends ConsumerWidget {
                 _buildMenuItem(
                   context,
                   ref,
+                  Icons.calendar_month,
+                  'Mes réservations',
+                  () => _navigateToReservations(context),
+                ),
+                _buildMenuItem(
+                  context,
+                  ref,
                   Icons.person_outline,
                   AppStrings.personalInfo,
                   () => _showPersonalInfoDialog(context, user),
                 ),
+                // Afficher "Mes préférences" uniquement pour les visiteurs
+                if (user.role?.toLowerCase() == 'visiteur')
+                  _buildMenuItem(
+                    context,
+                    ref,
+                    Icons.favorite_outline,
+                    'Mes préférences',
+                    () => _navigateToPreferences(context),
+                  ),
                 _buildMenuItem(
                   context,
                   ref,
@@ -231,6 +249,18 @@ class ProfilePage extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
+  }
+
+  void _navigateToReservations(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MyReservationsPage()),
+    );
+  }
+
+  void _navigateToPreferences(BuildContext context) {
+    // Rediriger vers le questionnaire en mode édition (isFirstTime = false)
+    context.go(AppRouter.questionnaire, extra: false);
   }
 
   void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
@@ -394,14 +424,85 @@ class ProfilePage extends ConsumerWidget {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fonctionnalité en cours de développement'),
-                  backgroundColor: AppColors.warning,
-                ),
+            onPressed: () async {
+              // Validation basique
+              if (prenomController.text.trim().isEmpty ||
+                  nomController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Le prénom et le nom sont obligatoires'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+
+              // Validation et récupération du navigator avant les opérations async
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+              // Fermer le dialogue
+              navigator.pop();
+
+              // Afficher un indicateur de chargement
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) =>
+                    const Center(child: CircularProgressIndicator()),
               );
+
+              try {
+                print('🔄 Début de la mise à jour du profil...');
+                print('   Prénom: ${prenomController.text.trim()}');
+                print('   Nom: ${nomController.text.trim()}');
+                print('   Profession: ${professionController.text.trim()}');
+                print('   Téléphone: ${phoneController.text.trim()}');
+
+                // Mettre à jour le profil
+                await ref
+                    .read(currentUserProvider.notifier)
+                    .updateProfile(
+                      prenom: prenomController.text.trim(),
+                      nom: nomController.text.trim(),
+                      profession: professionController.text.trim().isEmpty
+                          ? null
+                          : professionController.text.trim(),
+                      telephone: phoneController.text.trim().isEmpty
+                          ? null
+                          : phoneController.text.trim(),
+                    );
+
+                print('✅ Profil mis à jour avec succès');
+
+                // Fermer l'indicateur de chargement
+                print('🔄 Fermeture de l\'indicateur de chargement');
+                navigator.pop();
+
+                // Afficher un message de succès
+                print('🔄 Affichage du message de succès');
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Profil mis à jour avec succès'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e, stackTrace) {
+                print('❌ Erreur lors de la mise à jour du profil: $e');
+                print('📋 Stack trace: $stackTrace');
+
+                // Fermer l'indicateur de chargement
+                print('🔄 Fermeture de l\'indicateur de chargement (erreur)');
+                navigator.pop();
+
+                // Afficher un message d'erreur
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('❌ Erreur: ${e.toString()}'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -468,7 +569,7 @@ class ProfilePage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Vodou Host',
+                'Vodoo Host',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               SizedBox(height: 8),
@@ -485,7 +586,7 @@ class ProfilePage extends ConsumerWidget {
               ),
               SizedBox(height: 16),
               Text(
-                '© 2024 Vodou Host. Tous droits réservés.',
+                '© 2026 Vodoo Host. Tous droits réservés.',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ],

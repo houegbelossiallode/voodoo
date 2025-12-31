@@ -1,5 +1,5 @@
 import 'package:vodou/core/services/supabase_service.dart';
-import 'package:vodou/features/preferences/domain/models/user_preferences.dart';
+import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
 
 /// Repository pour gérer les préférences utilisateur
 class UserPreferencesRepository {
@@ -8,7 +8,7 @@ class UserPreferencesRepository {
   UserPreferencesRepository(this._supabaseService);
 
   /// Récupère les préférences d'un utilisateur
-  Future<UserPreferences?> getUserPreferences(int userId) async {
+  Future<app_user.UserPreferences?> getUserPreferences(int userId) async {
     try {
       final response = await _supabaseService.client
           .from('user_preferences')
@@ -18,16 +18,16 @@ class UserPreferencesRepository {
 
       if (response == null) return null;
 
-      return UserPreferences.fromJson(response);
+      return app_user.UserPreferences.fromJson(response);
     } catch (e) {
       throw Exception('Erreur lors de la récupération des préférences: $e');
     }
   }
 
   /// Crée ou met à jour les préférences d'un utilisateur
-  Future<UserPreferences> saveUserPreferences({
+  Future<app_user.UserPreferences> saveUserPreferences({
     required int userId,
-    required List<String> divinitesPreferees,
+    required List<int> divinitesPreferees,
     required bool assisterRituel,
     String? preferredCurrency,
   }) async {
@@ -49,7 +49,7 @@ class UserPreferencesRepository {
             .select()
             .single();
 
-        return UserPreferences.fromJson(response);
+        return app_user.UserPreferences.fromJson(response);
       } else {
         // Création
         final response = await _supabaseService.client
@@ -64,7 +64,7 @@ class UserPreferencesRepository {
             .select()
             .single();
 
-        return UserPreferences.fromJson(response);
+        return app_user.UserPreferences.fromJson(response);
       }
     } catch (e) {
       throw Exception('Erreur lors de la sauvegarde des préférences: $e');
@@ -72,9 +72,9 @@ class UserPreferencesRepository {
   }
 
   /// Met à jour uniquement les divinités préférées
-  Future<UserPreferences> updateDivinitesPreferees({
+  Future<app_user.UserPreferences> updateDivinitesPreferees({
     required int userId,
-    required List<String> divinitesPreferees,
+    required List<int> divinitesPreferees,
   }) async {
     try {
       final response = await _supabaseService.client
@@ -87,14 +87,14 @@ class UserPreferencesRepository {
           .select()
           .single();
 
-      return UserPreferences.fromJson(response);
+      return app_user.UserPreferences.fromJson(response);
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour des divinités: $e');
     }
   }
 
   /// Met à jour la préférence pour assister aux rituels
-  Future<UserPreferences> updateAssisterRituel({
+  Future<app_user.UserPreferences> updateAssisterRituel({
     required int userId,
     required bool assisterRituel,
   }) async {
@@ -109,7 +109,7 @@ class UserPreferencesRepository {
           .select()
           .single();
 
-      return UserPreferences.fromJson(response);
+      return app_user.UserPreferences.fromJson(response);
     } catch (e) {
       throw Exception(
         'Erreur lors de la mise à jour de la préférence rituel: $e',
@@ -118,7 +118,7 @@ class UserPreferencesRepository {
   }
 
   /// Met à jour la devise préférée
-  Future<UserPreferences> updatePreferredCurrency({
+  Future<app_user.UserPreferences> updatePreferredCurrency({
     required int userId,
     required String currency,
   }) async {
@@ -133,7 +133,7 @@ class UserPreferencesRepository {
           .select()
           .single();
 
-      return UserPreferences.fromJson(response);
+      return app_user.UserPreferences.fromJson(response);
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour de la devise: $e');
     }
@@ -154,9 +154,24 @@ class UserPreferencesRepository {
   /// Vérifie si l'utilisateur a complété le questionnaire
   Future<bool> hasCompletedQuestionnaire(int userId) async {
     try {
+      print('🔍 hasCompletedQuestionnaire - userId: $userId');
       final preferences = await getUserPreferences(userId);
-      return preferences?.isCompleted ?? false;
+      print('   📦 preferences: $preferences');
+
+      if (preferences == null) {
+        print('   ❌ Aucune préférence trouvée → hasCompleted = FALSE');
+        return false;
+      }
+
+      print('   📋 divinitesPreferees: ${preferences.divinitesPreferees}');
+      print('   📊 hasPreferences: ${preferences.hasPreferences}');
+
+      final result = preferences.hasPreferences;
+      print('   ✅ Résultat final → hasCompleted = $result');
+
+      return result;
     } catch (e) {
+      print('   ⚠️ Erreur dans hasCompletedQuestionnaire: $e');
       return false;
     }
   }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
-import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/features/auth/presentation/providers/role_provider.dart';
+import 'package:vodou/features/auth/presentation/providers/first_time_visitor_provider.dart';
+import 'package:vodou/features/auth/domain/models/role.dart';
 
 /// Page d'inscription avec email et mot de passe
 class SignUpPage extends ConsumerStatefulWidget {
@@ -26,6 +28,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  Role? _selectedRole;
 
   @override
   void dispose() {
@@ -53,9 +56,29 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       return;
     }
 
+    // Vérifier qu'un rôle est sélectionné
+    if (_selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez sélectionner un rôle'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      print('📝 Début de l\'inscription...');
+
+      // Marquer si c'est un visiteur pour le questionnaire
+      final isVisitor = _selectedRole!.libelle.toLowerCase() == 'visiteur';
+      if (isVisitor) {
+        ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
+        print('🎯 Marqué comme nouveau visiteur pour questionnaire');
+      }
+
       await ref
           .read(currentUserProvider.notifier)
           .signUpWithEmail(
@@ -65,8 +88,11 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             prenom: _prenomController.text.trim(),
             telephone: _telephoneController.text.trim(),
             profession: _professionController.text.trim(),
+            roleId: _selectedRole!.id,
             langue: ['fr'],
           );
+
+      print('✅ Inscription réussie!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -75,8 +101,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             backgroundColor: Colors.green,
           ),
         );
-        // Redirection vers le questionnaire (première connexion)
-        context.go(AppRouter.questionnaire, extra: true);
+
+        // Le router va gérer la redirection automatiquement
+        print('🔄 Attente de la redirection automatique par le router...');
       }
     } catch (e) {
       if (mounted) {
@@ -98,11 +125,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Créer un compte'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: const CustomAppBar(title: 'Créer un compte'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -223,6 +246,75 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                       return 'Veuillez entrer votre numéro de téléphone';
                     }
                     return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Sélecteur de rôle
+                Consumer(
+                  builder: (context, ref, child) {
+                    final rolesAsync = ref.watch(rolesProvider);
+
+                    return rolesAsync.when(
+                      data: (roles) {
+                        return DropdownButtonFormField<Role>(
+                          value: _selectedRole,
+                          decoration: InputDecoration(
+                            labelText: 'Rôle *',
+                            hintText: 'Sélectionnez votre rôle',
+                            prefixIcon: const Icon(Icons.badge_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                          ),
+                          items: roles.map((role) {
+                            return DropdownMenuItem<Role>(
+                              value: role,
+                              child: Text(role.libelle),
+                            );
+                          }).toList(),
+                          onChanged: (Role? newValue) {
+                            setState(() {
+                              _selectedRole = newValue;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Veuillez sélectionner un rôle';
+                            }
+                            return null;
+                          },
+                        );
+                      },
+                      loading: () => TextFormField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: 'Rôle',
+                          hintText: 'Chargement des rôles...',
+                          prefixIcon: const Icon(Icons.badge_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                      ),
+                      error: (error, stack) => TextFormField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: 'Rôle',
+                          hintText: 'Erreur de chargement',
+                          prefixIcon: const Icon(Icons.error_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 16),

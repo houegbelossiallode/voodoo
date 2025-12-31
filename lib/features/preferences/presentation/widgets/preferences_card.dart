@@ -59,7 +59,7 @@ class PreferencesCard extends ConsumerWidget {
             const SizedBox(height: 20),
             preferencesAsync.when(
               data: (preferences) {
-                if (preferences == null || !preferences.isCompleted) {
+                if (preferences == null || !preferences.hasPreferences) {
                   return _buildEmptyState(context);
                 }
                 return _buildPreferencesContent(preferences);

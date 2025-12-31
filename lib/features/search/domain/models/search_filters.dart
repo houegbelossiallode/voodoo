@@ -1,3 +1,6 @@
+// Constante pour différencier null d'une valeur non fournie
+const _undefined = Object();
+
 /// Modèle pour les filtres de recherche de logements
 class SearchFilters {
   final String? destination; // Quartier ou ville
@@ -6,7 +9,7 @@ class SearchFilters {
   final int? nbVoyageurs;
   final double? prixMin;
   final double? prixMax;
-  final List<String> divinites; // IDs ou noms des divinités
+  final List<int> divinites; // IDs des divinités
   final List<int> equipements; // IDs des équipements
   final List<String> languesHote; // Langues parlées par l'hôte
   final int? nbChambresMin;
@@ -30,32 +33,44 @@ class SearchFilters {
 
   /// Crée une copie avec des modifications
   SearchFilters copyWith({
-    String? destination,
-    DateTime? dateDebut,
-    DateTime? dateFin,
-    int? nbVoyageurs,
-    double? prixMin,
-    double? prixMax,
-    List<String>? divinites,
+    Object? destination = _undefined,
+    Object? dateDebut = _undefined,
+    Object? dateFin = _undefined,
+    Object? nbVoyageurs = _undefined,
+    Object? prixMin = _undefined,
+    Object? prixMax = _undefined,
+    List<int>? divinites,
     List<int>? equipements,
     List<String>? languesHote,
-    int? nbChambresMin,
-    int? quartierId,
-    bool? assisterRituel,
+    Object? nbChambresMin = _undefined,
+    Object? quartierId = _undefined,
+    Object? assisterRituel = _undefined,
   }) {
     return SearchFilters(
-      destination: destination ?? this.destination,
-      dateDebut: dateDebut ?? this.dateDebut,
-      dateFin: dateFin ?? this.dateFin,
-      nbVoyageurs: nbVoyageurs ?? this.nbVoyageurs,
-      prixMin: prixMin ?? this.prixMin,
-      prixMax: prixMax ?? this.prixMax,
+      destination: destination == _undefined
+          ? this.destination
+          : destination as String?,
+      dateDebut: dateDebut == _undefined
+          ? this.dateDebut
+          : dateDebut as DateTime?,
+      dateFin: dateFin == _undefined ? this.dateFin : dateFin as DateTime?,
+      nbVoyageurs: nbVoyageurs == _undefined
+          ? this.nbVoyageurs
+          : nbVoyageurs as int?,
+      prixMin: prixMin == _undefined ? this.prixMin : prixMin as double?,
+      prixMax: prixMax == _undefined ? this.prixMax : prixMax as double?,
       divinites: divinites ?? this.divinites,
       equipements: equipements ?? this.equipements,
       languesHote: languesHote ?? this.languesHote,
-      nbChambresMin: nbChambresMin ?? this.nbChambresMin,
-      quartierId: quartierId ?? this.quartierId,
-      assisterRituel: assisterRituel ?? this.assisterRituel,
+      nbChambresMin: nbChambresMin == _undefined
+          ? this.nbChambresMin
+          : nbChambresMin as int?,
+      quartierId: quartierId == _undefined
+          ? this.quartierId
+          : quartierId as int?,
+      assisterRituel: assisterRituel == _undefined
+          ? this.assisterRituel
+          : assisterRituel as bool?,
     );
   }
 

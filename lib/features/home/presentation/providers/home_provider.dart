@@ -4,6 +4,7 @@ import 'package:vodou/features/home/data/repositories/divinite_repository.dart';
 import 'package:vodou/features/home/data/repositories/logement_repository.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
+import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
 
 /// Provider pour le service Supabase
 final supabaseServiceProvider = Provider<SupabaseService>((ref) {
@@ -26,6 +27,36 @@ final logementRepositoryProvider = Provider<LogementRepository>((ref) {
 final divinitesProvider = FutureProvider<List<Divinite>>((ref) async {
   final repository = ref.watch(diviniteRepositoryProvider);
   return repository.getAllDivinites();
+});
+
+/// Provider pour récupérer uniquement les divinités préférées de l'utilisateur
+final preferredDivinitesProvider = FutureProvider<List<Divinite>>((ref) async {
+  print('🎯 Chargement des divinités préférées...');
+
+  // Récupérer les préférences de l'utilisateur
+  final preferencesAsync = await ref.watch(
+    currentUserPreferencesProvider.future,
+  );
+  final repository = ref.watch(diviniteRepositoryProvider);
+
+  // Si pas de préférences, retourner toutes les divinités
+  if (preferencesAsync == null || preferencesAsync.divinitesPreferees.isEmpty) {
+    print('ℹ️ Pas de préférences → toutes les divinités');
+    return repository.getAllDivinites();
+  }
+
+  print('✅ Préférences trouvées: ${preferencesAsync.divinitesPreferees}');
+
+  // Récupérer toutes les divinités et filtrer par IDs préférés
+  final allDivinites = await repository.getAllDivinites();
+  final preferredDivinites = allDivinites
+      .where(
+        (divinite) => preferencesAsync.divinitesPreferees.contains(divinite.id),
+      )
+      .toList();
+
+  print('📊 ${preferredDivinites.length} divinités préférées trouvées');
+  return preferredDivinites;
 });
 
 /// Provider pour récupérer tous les logements

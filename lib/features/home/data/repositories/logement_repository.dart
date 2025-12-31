@@ -122,31 +122,53 @@ class LogementRepository {
     }
   }
 
-  /// Récupère les logements par liste de noms de divinités (pour les préférences)
+  /// Récupère les logements par liste d'IDs de divinités (pour les préférences)
   /// Filtre par disponibilité et retourne les logements triés par pertinence
   Future<List<Logement>> getLogementsByDiviniteNames(
-    List<String> diviniteNames, {
+    List<int> diviniteIds, {
     bool disponibleOnly = true,
     int limit = 20,
   }) async {
     try {
-      print('🔍 Recherche logements pour divinités: $diviniteNames');
+      print('🔍 Recherche logements pour divinités IDs: $diviniteIds');
 
-      // Requête avec jointure sur divinite_logement et divinites
+      if (diviniteIds.isEmpty) {
+        print('⚠️ Aucune divinité spécifiée');
+        return [];
+      }
+
+      // Étape 1 : Récupérer les IDs des logements liés aux divinités choisies
+      final diviniteLogementResponse = await _supabaseService.client
+          .from('divinite_logement')
+          .select('logement_id')
+          .inFilter('divinite_id', diviniteIds);
+
+      print('📊 Réponse divinite_logement: $diviniteLogementResponse');
+
+      // Extraire les IDs uniques des logements
+      final logementIds = <int>{};
+      for (final row in diviniteLogementResponse as List) {
+        final logementId = row['logement_id'] as int;
+        logementIds.add(logementId);
+      }
+
+      print(
+        '🏠 ${logementIds.length} logements liés aux divinités: $logementIds',
+      );
+
+      if (logementIds.isEmpty) {
+        print('⚠️ Aucun logement trouvé pour ces divinités');
+        return [];
+      }
+
+      // Étape 2 : Récupérer les logements avec ces IDs
       var query = _supabaseService.client
           .from(SupabaseConfig.logementsTable)
           .select('''
             *,
-            photos:${SupabaseConfig.photosTable}(*),
-            divinite_logement!inner(
-              divinites!inner(
-                id,
-                nom,
-                description,
-                image
-              )
-            )
+            photos:${SupabaseConfig.photosTable}(*)
           ''')
+          .inFilter('id', logementIds.toList())
           .eq('actif', 'OUI');
 
       // Filtrer par disponibilité si demandé
@@ -158,38 +180,20 @@ class LogementRepository {
           .order('created_at', ascending: false)
           .limit(limit);
 
-      // Filtrer les résultats pour ne garder que ceux avec les divinités demandées
-      final logements = (response as List)
-          .map((json) => Logement.fromJson(json as Map<String, dynamic>))
-          .toList();
+      print('📊 ${response.length} logements récupérés');
 
-      // Filtrer par noms de divinités (case-insensitive)
-      final filteredLogements = logements.where((logement) {
-        final logementJson = response.firstWhere(
-          (json) => json['id'] == logement.id,
-          orElse: () => <String, dynamic>{},
-        );
-
-        if (logementJson['divinite_logement'] != null) {
-          final divinitesData = logementJson['divinite_logement'] as List;
-          return divinitesData.any((divLogement) {
-            final divinite = divLogement['divinites'];
-            if (divinite != null && divinite['nom'] != null) {
-              final nom = (divinite['nom'] as String).toLowerCase();
-              return diviniteNames.any(
-                (prefNom) => nom == prefNom.toLowerCase(),
-              );
-            }
-            return false;
-          });
-        }
-        return false;
+      // Convertir en objets Logement
+      final logements = (response as List).map((json) {
+        final logement = Logement.fromJson(json as Map<String, dynamic>);
+        print('   ✅ Logement ${logement.id}: ${logement.titre}');
+        return logement;
       }).toList();
 
-      print('✅ ${filteredLogements.length} logements trouvés');
-      return filteredLogements;
-    } catch (e) {
+      print('✅ ${logements.length} logements trouvés au total');
+      return logements;
+    } catch (e, stackTrace) {
       print('❌ Erreur: $e');
+      print('📋 Stack trace: $stackTrace');
       throw Exception(
         'Erreur lors de la récupération des logements par divinités: $e',
       );

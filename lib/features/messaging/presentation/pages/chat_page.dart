@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/messaging/domain/models/conversation_model.dart';
 import 'package:vodou/features/messaging/presentation/providers/messaging_provider.dart';
@@ -187,8 +188,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: conversationAsync.when(
+      appBar: CustomAppBar(
+        titleWidget: conversationAsync.when(
           data: (conversation) {
             if (conversation == null || user == null) {
               return const Text('Chat');
@@ -215,8 +216,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           loading: () => const Text('Chat'),
           error: (_, __) => const Text('Chat'),
         ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [

@@ -4,10 +4,28 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
+import 'package:vodou/features/auth/domain/models/role.dart';
 
 /// Repository pour gérer l'authentification avec Supabase
 class AuthRepository {
   final SupabaseClient _supabase = SupabaseService.instance.client;
+
+  /// Récupère tous les rôles actifs
+  Future<List<Role>> getActiveRoles() async {
+    try {
+      final response = await _supabase
+          .from(SupabaseConfig.rolesTable)
+          .select()
+          .eq('actif', 'OUI')
+          .order('libelle');
+
+      return (response as List)
+          .map((json) => Role.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Erreur lors de la récupération des rôles: $e');
+    }
+  }
 
   /// Inscription avec email et mot de passe
   Future<app_user.User?> signUpWithEmail({
@@ -17,21 +35,13 @@ class AuthRepository {
     required String prenom,
     required String telephone,
     required String profession,
+    required int roleId,
     List<String>? langue,
     List<String>? passions,
     String? bio,
   }) async {
     try {
-      // 1. Récupérer l'ID du rôle "Visiteur"
-      final roleResponse = await _supabase
-          .from(SupabaseConfig.rolesTable)
-          .select('id')
-          .eq('libelle', 'Visiteur')
-          .single();
-
-      final visiteurRoleId = roleResponse['id'] as int;
-
-      // 2. Créer le compte Supabase Auth
+      // 1. Créer le compte Supabase Auth
       final authResponse = await _supabase.auth.signUp(
         email: email,
         password: password,
@@ -41,28 +51,53 @@ class AuthRepository {
         throw Exception('Erreur lors de la création du compte');
       }
 
-      // 3. Créer le profil dans la table users
+      // 2. Créer le profil dans la table users avec le rôle sélectionné
       // L'id sera auto-généré par PostgreSQL
-      final userProfile = await _supabase
-          .from(SupabaseConfig.usersTable)
-          .insert({
-            'supabase_id': authResponse.user!.id, // UUID de Supabase Auth
-            'nom': nom,
-            'prenom': prenom,
-            'email': email,
-            'telephone': telephone,
-            'profession': profession,
-            'langue': langue ?? ['fr'],
-            'passions': passions ?? [],
-            'bio': bio,
-            'role_id': visiteurRoleId, // Rôle "Visiteur" récupéré dynamiquement
-            'actif': 'OUI',
-            'created_at': DateTime.now().toIso8601String(),
-          })
-          .select()
-          .single();
+      print('📝 Création du profil utilisateur...');
+      print('   - Supabase ID: ${authResponse.user!.id}');
+      print('   - Email: $email');
+      print('   - Rôle ID: $roleId');
 
-      return app_user.User.fromJson(userProfile);
+      final userProfile =
+          await _supabase
+                  .from(SupabaseConfig.usersTable)
+                  .insert({
+                    'supabase_id':
+                        authResponse.user!.id, // UUID de Supabase Auth
+                    'nom': nom,
+                    'prenom': prenom,
+                    'email': email,
+                    'telephone': telephone,
+                    'profession': profession,
+                    'langue': langue ?? ['fr'],
+                    'passions': passions ?? [],
+                    'bio': bio,
+                    'role_id': roleId, // Rôle sélectionné par l'utilisateur
+                    'actif': 'OUI',
+                    'created_at': DateTime.now().toIso8601String(),
+                  })
+                  .select('''
+            *,
+            role:${SupabaseConfig.rolesTable}!role_id(libelle)
+          ''')
+              as List<dynamic>;
+
+      print('✅ Profil créé avec succès');
+      print('🔍 DEBUG: Réponse: $userProfile');
+
+      // Vérifier que la réponse contient des données
+      if (userProfile.isEmpty) {
+        throw Exception(
+          'Erreur: Profil créé mais non retourné par la base de données',
+        );
+      }
+
+      // Prendre le premier élément de la liste
+      final profileData = userProfile.first as Map<String, dynamic>;
+      print('🔍 DEBUG: Profil data: $profileData');
+      print('🔍 DEBUG: Rôle dans profil: ${profileData['role']}');
+
+      return app_user.User.fromJson(profileData);
     } catch (e) {
       throw Exception('Erreur lors de l\'inscription: $e');
     }
@@ -118,19 +153,35 @@ class AuthRepository {
   /// Récupère le profil utilisateur depuis la base de données par supabase_id
   Future<app_user.User?> _getUserProfile(String supabaseId) async {
     try {
-      final response = await _supabase
-          .from(SupabaseConfig.usersTable)
-          .select('''
+      print('🔍 Recherche du profil pour supabase_id: $supabaseId');
+
+      final response =
+          await _supabase
+                  .from(SupabaseConfig.usersTable)
+                  .select('''
             *,
             role:${SupabaseConfig.rolesTable}!role_id(libelle)
           ''')
-          .eq('supabase_id', supabaseId) // Recherche par supabase_id
-          .eq('actif', 'OUI')
-          .single();
+                  .eq('supabase_id', supabaseId) // Recherche par supabase_id
+                  .eq('actif', 'OUI')
+              as List<dynamic>;
 
-      return app_user.User.fromJson(response);
+      print('🔍 Réponse brute: $response');
+
+      // Vérifier si la réponse contient des données
+      if (response.isEmpty) {
+        print('⚠️ Aucun profil trouvé pour cet utilisateur');
+        return null;
+      }
+
+      // Prendre le premier élément de la liste
+      final profileData = response.first as Map<String, dynamic>;
+      print('✅ Profil trouvé: ${profileData['prenom']} ${profileData['nom']}');
+
+      return app_user.User.fromJson(profileData);
     } catch (e) {
       // Si le profil n'existe pas encore
+      print('⚠️ Erreur lors de la recherche du profil: $e');
       return null;
     }
   }
@@ -449,7 +500,6 @@ class AuthRepository {
             'photo': photo,
             'role_id': visiteurRoleId,
             'actif': 'OUI',
-            'created_at': DateTime.now().toIso8601String(),
           })
           .select()
           .single();

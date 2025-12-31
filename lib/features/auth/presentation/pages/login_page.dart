@@ -90,49 +90,51 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  Future<void> _signInWithFacebook() async {
-    setState(() => _isLoading = true);
-    try {
-      await ref.read(currentUserProvider.notifier).signInWithFacebook();
-      if (mounted) {
-        _handleSuccessfulLogin();
-      }
-    } catch (e) {
-      print('❌ Erreur Facebook: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur Facebook: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
   Future<void> _handleSuccessfulLogin() async {
-    // Vérifier si l'utilisateur a complété le questionnaire
-    try {
-      final hasCompleted = await ref.read(
-        hasCompletedQuestionnaireProvider.future,
-      );
+    // Récupérer l'utilisateur connecté
+    final userAsync = ref.read(currentUserProvider);
+    final user = userAsync.value;
 
-      if (!hasCompleted) {
-        print('🎯 Redirection vers le questionnaire (première connexion)');
-        context.go(AppRouter.questionnaire, extra: true);
-      } else {
-        print('🚀 Redirection vers /home');
-        context.go(AppRouter.home);
+    if (user == null) {
+      print('⚠️ Utilisateur non trouvé après connexion');
+      context.go(AppRouter.festivalSelection, extra: true);
+      return;
+    }
+
+    // Vérifier le rôle de l'utilisateur
+    final userRole = user.role?.toLowerCase() ?? '';
+    print('👤 Rôle utilisateur: $userRole');
+
+    // Seuls les visiteurs passent par le questionnaire
+    if (userRole == 'visiteur') {
+      try {
+        print('🔍 Vérification des préférences utilisateur...');
+        final hasCompleted = await ref.read(
+          hasCompletedQuestionnaireProvider.future,
+        );
+
+        print('📊 hasCompleted = $hasCompleted');
+
+        if (!hasCompleted) {
+          print('🎉 Redirection vers festival-selection (isFirstTime=true)');
+          context.go(AppRouter.festivalSelection, extra: true);
+        } else {
+          print('🎉 Redirection vers festival-selection (isFirstTime=false)');
+          context.go(AppRouter.festivalSelection, extra: false);
+        }
+      } catch (e) {
+        print('⚠️ Erreur vérification préférences: $e');
+        print(
+          '🎉 Redirection vers festival-selection par défaut (isFirstTime=true)',
+        );
+        context.go(AppRouter.festivalSelection, extra: true);
       }
-    } catch (e) {
-      // Si erreur (table n'existe pas), rediriger vers le questionnaire
-      print('⚠️ Erreur vérification préférences: $e');
-      print('🎯 Redirection vers le questionnaire par défaut');
-      context.go(AppRouter.questionnaire, extra: true);
+    } else {
+      // Hôtes, administrateurs, etc. vont directement à la sélection de festival
+      print(
+        '🎉 Redirection vers festival-selection ($userRole, isFirstTime=false)',
+      );
+      context.go(AppRouter.festivalSelection, extra: false);
     }
   }
 
@@ -150,7 +152,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo et titre
-                  Icon(Icons.home_outlined, size: 80, color: AppColors.primary),
+                  Image.asset(
+                    'assets/logos/logo_2.png',
+                    height: 100,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.home_outlined,
+                      size: 80,
+                      color: AppColors.primary,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Vodoo Host',
@@ -299,55 +309,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Boutons OAuth (Google et Facebook)
-                  Row(
-                    children: [
-                      // Bouton Google
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _isLoading ? null : _signInWithGoogle,
-                          icon: Image.asset(
-                            'assets/icons/google.png',
-                            height: 24,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.g_mobiledata, size: 24),
-                          ),
-                          label: const Text('Google'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: AppColors.greyLight),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
+                  // Bouton OAuth (Google uniquement)
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    icon: Image.asset(
+                      'assets/icons/google.png',
+                      height: 24,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.g_mobiledata, size: 24),
+                    ),
+                    label: const Text('Continuer avec Google'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: AppColors.greyLight),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 16),
-                      // Bouton Facebook
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _isLoading ? null : _signInWithFacebook,
-                          icon: Image.asset(
-                            'assets/icons/facebook.png',
-                            height: 24,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(
-                                  Icons.facebook,
-                                  size: 24,
-                                  color: Color(0xFF1877F2),
-                                ),
-                          ),
-                          label: const Text('Facebook'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: AppColors.greyLight),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 32),
 

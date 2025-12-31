@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
 
@@ -8,7 +9,7 @@ class MessagesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.messages)),
+      appBar: const CustomAppBar(title: AppStrings.messages),
       body: Column(
         children: [
           // Filter Tabs

@@ -5,11 +5,15 @@ import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/core/theme/app_theme.dart';
 import 'package:vodou/core/constants/app_strings.dart';
 import 'package:vodou/core/services/supabase_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   print('🚀 Démarrage de l\'application Vodou Host...');
+
+  // Initialize date formatting for French locale
+  await initializeDateFormatting('fr_FR', null);
 
   // Initialize Supabase
   await SupabaseService.initialize();

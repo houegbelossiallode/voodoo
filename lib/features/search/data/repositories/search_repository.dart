@@ -69,7 +69,7 @@ class SearchRepository {
 
       // Filtres post-requête (car nécessitent des jointures complexes)
 
-      // Filtre par divinités
+      // Filtre par divinités (IDs)
       if (filters.divinites.isNotEmpty) {
         logements = logements.where((logement) {
           final logementJson = response.firstWhere(
@@ -81,11 +81,9 @@ class SearchRepository {
             final divinitesData = logementJson['divinite_logement'] as List;
             return divinitesData.any((divLogement) {
               final divinite = divLogement['divinites'];
-              if (divinite != null && divinite['nom'] != null) {
-                final nom = (divinite['nom'] as String).toLowerCase();
-                return filters.divinites.any(
-                  (prefNom) => nom == prefNom.toLowerCase(),
-                );
+              if (divinite != null && divinite['id'] != null) {
+                final diviniteId = divinite['id'] as int;
+                return filters.divinites.contains(diviniteId);
               }
               return false;
             });
@@ -136,6 +134,7 @@ class SearchRepository {
   }
 
   /// Filtre les logements par disponibilité de dates
+  /// Utilise la même logique que checkAvailability du ReservationRepository
   Future<List<Logement>> _filterByDateDisponibilite(
     List<Logement> logements,
     DateTime dateDebut,
@@ -143,28 +142,115 @@ class SearchRepository {
   ) async {
     final availableLogements = <Logement>[];
 
+    print(
+      '🔍 Filtrage par dates: ${dateDebut.toIso8601String().split('T')[0]} → ${dateFin.toIso8601String().split('T')[0]}',
+    );
+
     for (final logement in logements) {
       try {
-        // Vérifier les périodes de réservation
-        final response = await _supabaseService.client
+        // 1. Vérifier dans la table logement_disponibilites
+        final disponibilitesResponse = await _supabaseService.client
             .from(SupabaseConfig.logementDisponibilitesTable)
             .select()
             .eq('logement_id', logement.id)
-            .gte('date_fin', dateDebut.toIso8601String())
-            .lte('date_debut', dateFin.toIso8601String())
-            .eq('statut', 'réservé'); // Seulement les périodes réservées
+            .eq('statut', 'disponible');
 
-        // Si aucune réservation ne chevauche, le logement est disponible
-        if (response.isEmpty) {
-          availableLogements.add(logement);
+        final disponibilites = disponibilitesResponse as List;
+
+        print(
+          '   📋 Logement ${logement.id} (${logement.titre}): ${disponibilites.length} période(s) de disponibilité',
+        );
+
+        // Vérifier si les dates demandées sont couvertes par une période disponible
+        bool isInAvailablePeriod = false;
+        for (var dispo in disponibilites) {
+          // Normaliser les dates pour comparer uniquement les jours (sans heures)
+          final dispoDebut = DateTime(
+            DateTime.parse(dispo['date_debut'] as String).year,
+            DateTime.parse(dispo['date_debut'] as String).month,
+            DateTime.parse(dispo['date_debut'] as String).day,
+          );
+          final dispoFin = DateTime(
+            DateTime.parse(dispo['date_fin'] as String).year,
+            DateTime.parse(dispo['date_fin'] as String).month,
+            DateTime.parse(dispo['date_fin'] as String).day,
+          );
+          final reservDebut = DateTime(
+            dateDebut.year,
+            dateDebut.month,
+            dateDebut.day,
+          );
+          final reservFin = DateTime(dateFin.year, dateFin.month, dateFin.day);
+
+          print('      Période dispo: $dispoDebut → $dispoFin');
+          print('      Dates demandées: $reservDebut → $reservFin');
+
+          // Les dates de réservation doivent être complètement dans la période disponible
+          // dateDebut >= dispoDebut ET dateFin <= dispoFin
+          final debutOk =
+              reservDebut.isAtSameMomentAs(dispoDebut) ||
+              reservDebut.isAfter(dispoDebut);
+          final finOk =
+              reservFin.isAtSameMomentAs(dispoFin) ||
+              reservFin.isBefore(dispoFin);
+
+          print('      Début OK: $debutOk (${reservDebut} >= ${dispoDebut})');
+          print('      Fin OK: $finOk (${reservFin} <= ${dispoFin})');
+
+          if (debutOk && finOk) {
+            isInAvailablePeriod = true;
+            print('      ✅ Période valide trouvée');
+            break;
+          }
         }
+
+        if (!isInAvailablePeriod) {
+          print(
+            '   ❌ Logement ${logement.id} (${logement.titre}): Aucune période de disponibilité ne couvre ces dates',
+          );
+          continue;
+        }
+
+        // 2. Vérifier s'il y a des réservations qui se chevauchent
+        print('   🔍 Vérification des réservations existantes...');
+        final dateDebutStr = dateDebut.toIso8601String().split('T')[0];
+        final dateFinStr = dateFin.toIso8601String().split('T')[0];
+
+        final reservationsResponse = await _supabaseService.client
+            .from(SupabaseConfig.reservationsTable)
+            .select('id, date_debut, date_fin, statut')
+            .eq('logement_id', logement.id)
+            .not('statut', 'in', '(cancelled,ANNULEE)')
+            .lte('date_debut', dateFinStr)
+            .gte('date_fin', dateDebutStr);
+
+        final reservations = reservationsResponse as List;
+        print('   📋 ${reservations.length} réservation(s) trouvée(s)');
+
+        if (reservations.isNotEmpty) {
+          for (var res in reservations) {
+            print(
+              '      Réservation #${res['id']}: ${res['date_debut']} → ${res['date_fin']} (${res['statut']})',
+            );
+          }
+          print(
+            '   ❌ Logement ${logement.id} (${logement.titre}): Conflit avec ${reservations.length} réservation(s)',
+          );
+          continue;
+        }
+
+        // Si on arrive ici, le logement est disponible
+        print('   ✅ Logement ${logement.id} (${logement.titre}): DISPONIBLE');
+        availableLogements.add(logement);
       } catch (e) {
         print('⚠️ Erreur vérification dispo pour logement ${logement.id}: $e');
-        // En cas d'erreur, on inclut le logement par sécurité
-        availableLogements.add(logement);
+        // En cas d'erreur, on n'inclut PAS le logement pour éviter les fausses disponibilités
       }
     }
 
+    print(
+      '📊 Résultat: ${availableLogements.length}/${logements.length} logements disponibles',
+    );
     return availableLogements;
   }
 

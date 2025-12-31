@@ -20,14 +20,15 @@ class AppTheme {
 
       // AppBar Theme
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.white,
-        elevation: 0,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        elevation: 2,
         centerTitle: true,
-        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(color: AppColors.white),
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
+          color: AppColors.white,
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
           fontFamily: 'Poppins',
         ),
       ),

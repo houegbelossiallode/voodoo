@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/messaging/presentation/providers/messaging_provider.dart';
 import 'package:vodou/features/messaging/presentation/widgets/conversation_card.dart';
@@ -30,11 +31,22 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
     final conversationsAsync = ref.watch(filteredConversationsProvider);
     final unreadCount = ref.watch(unreadMessagesCountProvider);
 
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
+      appBar: CustomAppBar(
+        titleWidget: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Messages'),
+            const Text(
+              'Messages',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(width: 8),
             unreadCount.when(
               data: (count) => count > 0
@@ -62,8 +74,6 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
             ),
           ],
         ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
@@ -163,7 +173,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                       final conversation = conversations[index];
                       return ConversationCard(
                         conversation: conversation,
-                        currentUserId: user?.id ?? 0,
+                        currentUserId: user.id,
                         onTap: () {
                           context.push(
                             AppRouter.chat.replaceAll(

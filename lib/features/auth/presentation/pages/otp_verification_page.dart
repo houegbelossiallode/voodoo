@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
 import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String phoneNumber;
@@ -53,7 +54,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: CustomAppBar(
+        title: 'Vérification OTP',
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),

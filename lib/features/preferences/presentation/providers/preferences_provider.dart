@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/preferences/data/repositories/user_preferences_repository.dart';
-import 'package:vodou/features/preferences/domain/models/user_preferences.dart';
+import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
 
 /// Provider pour le repository des préférences
 final userPreferencesRepositoryProvider = Provider<UserPreferencesRepository>((
@@ -13,17 +13,16 @@ final userPreferencesRepositoryProvider = Provider<UserPreferencesRepository>((
 });
 
 /// Provider pour récupérer les préférences de l'utilisateur actuel
-final currentUserPreferencesProvider = FutureProvider<UserPreferences?>((
-  ref,
-) async {
-  final userAsync = ref.watch(currentUserProvider);
-  final user = userAsync.value;
+final currentUserPreferencesProvider =
+    FutureProvider<app_user.UserPreferences?>((ref) async {
+      final userAsync = ref.watch(currentUserProvider);
+      final user = userAsync.value;
 
-  if (user == null) return null;
+      if (user == null) return null;
 
-  final repository = ref.watch(userPreferencesRepositoryProvider);
-  return repository.getUserPreferences(user.id);
-});
+      final repository = ref.watch(userPreferencesRepositoryProvider);
+      return repository.getUserPreferences(user.id);
+    });
 
 /// Provider pour vérifier si l'utilisateur a complété le questionnaire
 final hasCompletedQuestionnaireProvider = FutureProvider<bool>((ref) async {
@@ -44,7 +43,7 @@ final hasCompletedQuestionnaireProvider = FutureProvider<bool>((ref) async {
 
 /// StateNotifier pour gérer les préférences utilisateur
 class UserPreferencesNotifier
-    extends StateNotifier<AsyncValue<UserPreferences?>> {
+    extends StateNotifier<AsyncValue<app_user.UserPreferences?>> {
   final UserPreferencesRepository _repository;
   final int? userId;
 
@@ -74,7 +73,7 @@ class UserPreferencesNotifier
 
   /// Sauvegarde les préférences complètes
   Future<void> savePreferences({
-    required List<String> divinitesPreferees,
+    required List<int> divinitesPreferees,
     required bool assisterRituel,
     String? preferredCurrency,
   }) async {
@@ -98,7 +97,7 @@ class UserPreferencesNotifier
   }
 
   /// Met à jour uniquement les divinités préférées
-  Future<void> updateDivinitesPreferees(List<String> divinitesPreferees) async {
+  Future<void> updateDivinitesPreferees(List<int> divinitesPreferees) async {
     if (userId == null) return;
 
     try {
@@ -158,7 +157,7 @@ class UserPreferencesNotifier
 final userPreferencesNotifierProvider =
     StateNotifierProvider<
       UserPreferencesNotifier,
-      AsyncValue<UserPreferences?>
+      AsyncValue<app_user.UserPreferences?>
     >((ref) {
       final repository = ref.read(userPreferencesRepositoryProvider);
       final userAsync = ref.read(currentUserProvider);
