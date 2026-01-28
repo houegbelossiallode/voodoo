@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_logo_widget.dart';
 
 /// AppBar personnalisé avec fond jaune et titre centré en blanc
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -9,6 +10,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final bool centerTitle;
   final PreferredSizeWidget? bottom;
+  final bool showLogo;
 
   const CustomAppBar({
     super.key,
@@ -18,6 +20,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.centerTitle = true,
     this.bottom,
+    this.showLogo = true,
   }) : assert(
          title != null || titleWidget != null,
          'Either title or titleWidget must be provided',
@@ -40,7 +43,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       foregroundColor: Colors.white,
       elevation: 2,
       iconTheme: const IconThemeData(color: Colors.white),
-      actions: actions,
+      actions: showLogo
+          ? [
+              if (actions != null) ...actions!,
+              const Padding(
+                padding: EdgeInsets.only(right: 12.0),
+                child: AppLogoWidget(),
+              ),
+            ]
+          : actions,
       leading: leading,
       bottom: bottom,
     );

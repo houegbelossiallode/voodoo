@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
 import 'package:vodou/core/widgets/network_error_widget.dart';
+import 'package:vodou/core/widgets/app_logo_widget.dart';
 import 'package:vodou/features/home/presentation/providers/home_provider.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
@@ -62,13 +63,10 @@ class HomePage extends ConsumerWidget {
                   ),
                 ],
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  color: Colors.white,
-                  onPressed: () {
-                    // TODO: Navigate to notifications
-                  },
+              actions: const [
+                Padding(
+                  padding: EdgeInsets.only(right: 12.0),
+                  child: AppLogoWidget(),
                 ),
               ],
             ),
