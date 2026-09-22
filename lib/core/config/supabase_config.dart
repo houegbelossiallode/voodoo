@@ -19,10 +19,11 @@ class SupabaseConfig {
   // Flag pour désactiver la confirmation email en développement
   // Mettre à true pour désactiver la confirmation email (utile pour les tests)
   static const bool disableEmailConfirmation = false;
+  /////// TODO: A supprimer en production ///////
 
   // Tables de la base de données (alignées avec Laravel)
   static const String usersTable = 'users';
-  static const String rolesTable = 'roles';
+  static const String rolesTable = 'roles'; 
   static const String paysTable = 'pays';
   static const String categoriesTable = 'categories';
   static const String typeLogementsTable = 'type_logements';
