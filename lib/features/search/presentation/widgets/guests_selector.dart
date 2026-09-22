@@ -23,202 +23,223 @@ class _GuestsSelectorState extends ConsumerState<GuestsSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Barre de drag
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: AppColors.grey,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Barre de drag
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Nombre de voyageurs',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               const Text(
-                'Nombre de voyageurs',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                'Combien de personnes voyagent ?',
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Combien de personnes voyagent ?',
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-          // Sélecteur de nombre avec design amélioré
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.05),
-              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Voyageurs',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Maximum 20 personnes',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+              // Sélecteur de nombre avec design amélioré
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                Row(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: _nbVoyageurs > 1
-                            ? AppColors.primary
-                            : AppColors.grey.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: _nbVoyageurs > 1
-                            ? () {
-                                setState(() {
-                                  _nbVoyageurs--;
-                                });
-                              }
-                            : null,
-                        icon: const Icon(Icons.remove, color: Colors.white),
-                        iconSize: 20,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Voyageurs',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Max 20 pers.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
-                    Container(
-                      width: 60,
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$_nbVoyageurs',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _nbVoyageurs > 1
+                                ? AppColors.primary
+                                : AppColors.grey.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: _nbVoyageurs > 1
+                                ? () {
+                                    setState(() {
+                                      _nbVoyageurs--;
+                                    });
+                                  }
+                                : null,
+                            icon: const Icon(Icons.remove, color: Colors.white),
+                            iconSize: 18,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: _nbVoyageurs < 20
-                            ? AppColors.primary
-                            : AppColors.grey.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: _nbVoyageurs < 20
-                            ? () {
-                                setState(() {
-                                  _nbVoyageurs++;
-                                });
-                              }
-                            : null,
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        iconSize: 20,
-                      ),
+                        Container(
+                          width: 40,
+                          alignment: Alignment.center,
+                          child: Text(
+                            '$_nbVoyageurs',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _nbVoyageurs < 20
+                                ? AppColors.primary
+                                : AppColors.grey.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: _nbVoyageurs < 20
+                                ? () {
+                                    setState(() {
+                                      _nbVoyageurs++;
+                                    });
+                                  }
+                                : null,
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            iconSize: 18,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-          // Options rapides
-          const Text(
-            'Sélection rapide',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildQuickOption(1),
-              _buildQuickOption(2),
-              _buildQuickOption(4),
-              _buildQuickOption(6),
-              _buildQuickOption(8),
-              _buildQuickOption(10),
+              // Options rapides
+              const Text(
+                'Sélection rapide',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildQuickOption(1),
+                  _buildQuickOption(2),
+                  _buildQuickOption(4),
+                  _buildQuickOption(6),
+                  _buildQuickOption(8),
+                  _buildQuickOption(10),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Boutons d'action
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _nbVoyageurs = 1;
+                        });
+                        ref
+                            .read(searchFiltersProvider.notifier)
+                            .setNbVoyageurs(null);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Effacer'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref
+                            .read(searchFiltersProvider.notifier)
+                            .setNbVoyageurs(_nbVoyageurs);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Appliquer'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-
-          const SizedBox(height: 24),
-
-          // Boutons d'action
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _nbVoyageurs = 1;
-                    });
-                    ref
-                        .read(searchFiltersProvider.notifier)
-                        .setNbVoyageurs(null);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.all(16),
-                  ),
-                  child: const Text('Effacer'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ref
-                        .read(searchFiltersProvider.notifier)
-                        .setNbVoyageurs(_nbVoyageurs);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(16),
-                  ),
-                  child: const Text('Appliquer'),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

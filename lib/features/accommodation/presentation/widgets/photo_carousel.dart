@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/home/domain/models/photo.dart';
 
 /// Carrousel de photos pour la page de détails
@@ -42,10 +43,10 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
           itemBuilder: (context, index) {
             return GestureDetector(
               onTap: () => _showFullScreenGallery(context, index),
-              child: Image.network(
-                widget.photos[index].url,
+              child: AppImage(
+                url: widget.photos[index].url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                errorWidget: _buildPlaceholder(),
               ),
             );
           },
@@ -72,17 +73,33 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
           ),
         ),
 
-        // Bouton "Voir toutes les photos"
+        // Bouton / Badge compact "Photos"
         Positioned(
           bottom: 16,
           left: 16,
-          child: ElevatedButton.icon(
-            onPressed: () => _showFullScreenGallery(context, _currentIndex),
-            icon: const Icon(Icons.photo_library, size: 18),
-            label: const Text('Voir toutes les photos'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.textPrimary,
+          child: InkWell(
+            onTap: () => _showFullScreenGallery(context, _currentIndex),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.photo_library, size: 16, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text(
+                    'Photos',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -163,10 +180,10 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
         itemBuilder: (context, index) {
           return InteractiveViewer(
             child: Center(
-              child: Image.network(
-                widget.photos[index].url,
+              child: AppImage(
+                url: widget.photos[index].url,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(
+                errorWidget: const Icon(
                   Icons.broken_image,
                   size: 80,
                   color: Colors.white54,

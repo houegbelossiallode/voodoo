@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/messaging/domain/models/conversation_model.dart';
 
 class ConversationCard extends StatelessWidget {
@@ -45,7 +46,7 @@ class ConversationCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 28,
                   backgroundImage: participantAvatar != null
-                      ? NetworkImage(participantAvatar)
+                      ? AppImage.provider(participantAvatar)
                       : null,
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   child: participantAvatar == null

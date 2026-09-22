@@ -11,20 +11,34 @@ class ProjetRepository {
   /// Récupère tous les projets actifs
   Future<List<Projet>> getAllProjets() async {
     try {
-      final response = await _supabaseService.client
-          .from(SupabaseConfig.projetsTable)
-          .select('''
-            *,
-            categorie:${SupabaseConfig.categoriesTable}(libelle)
-          ''')
-          .eq('actif', 'OUI')
-          .order('date_debut', ascending: false);
+      print('🔍 [ProjetRepository] Récupération de tous les projets...');
+      
+      // Essayer d'abord la requête complète avec jointure
+      dynamic response;
+      try {
+        response = await _supabaseService.client
+            .from(SupabaseConfig.projetsTable)
+            .select('''
+              *,
+              categorie:${SupabaseConfig.categoriesTable}(libelle)
+            ''');
+      } catch (joinError) {
+        print('⚠️ Jointure catégorie a échoué: $joinError. Repli sur requête simple.');
+        response = await _supabaseService.client
+            .from(SupabaseConfig.projetsTable)
+            .select('*');
+      }
 
-      return (response as List)
-          .map((json) => Projet.fromJson(json as Map<String, dynamic>))
-          .toList();
+      final list = (response as List).map((json) => Projet.fromJson(json as Map<String, dynamic>)).toList();
+      
+      // Filtrer côté Dart pour être insensible à la casse d'actif (OUI / oui / null)
+      final filteredList = list.where((p) => p.actif.toUpperCase() != 'NON').toList();
+
+      print('✅ [ProjetRepository] ${filteredList.length} projets trouvés (total: ${list.length})');
+      return filteredList;
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des projets: $e');
+      print('❌ Erreur lors de la récupération des projets: $e');
+      return [];
     }
   }
 

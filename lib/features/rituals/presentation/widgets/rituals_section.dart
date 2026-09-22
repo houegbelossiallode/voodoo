@@ -64,8 +64,13 @@ class RitualsSection extends ConsumerWidget {
             ? const BorderSide(color: AppColors.primary, width: 2)
             : BorderSide.none,
       ),
-      child: Column(
-        children: [
+      child: InkWell(
+        onTap: () {
+          ref.read(selectedRitualsProvider.notifier).toggleRitual(ritual.id);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -383,7 +388,8 @@ class RitualsSection extends ConsumerWidget {
           ],
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSymboleIcon(String? symbole) {

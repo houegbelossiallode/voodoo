@@ -65,6 +65,7 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
     required String firstName,
     required String lastName,
     required String email,
+    String? phone,
     int? projetId,
   }) async {
     state = const AsyncValue.loading();
@@ -74,6 +75,7 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
       print('   Montant: ${montant.toInt()} XOF');
       print('   Client: $firstName $lastName');
       print('   Email: $email');
+      print('   Téléphone: $phone');
 
       // Lancer le paiement KKiaPay
       await _paymentService.startPayment(
@@ -81,6 +83,7 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
         amount: montant,
         name: '$firstName $lastName',
         email: email,
+        phone: phone,
         reason: 'Réservation logement #$logementId',
         onSuccess: (response, ctx) async {
           try {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/accommodation/domain/models/host_info.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
@@ -31,7 +32,7 @@ class HostSection extends ConsumerWidget {
                 CircleAvatar(
                   radius: 35,
                   backgroundImage: host.photo != null
-                      ? NetworkImage(host.photo!)
+                      ? AppImage.provider(host.photo!)
                       : null,
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   child: host.photo == null
@@ -112,22 +113,20 @@ class HostSection extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // Statistiques
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
               children: [
-                if (host.noteGlobale != null) ...[
+                if (host.noteGlobale != null)
                   _buildStat(
                     icon: Icons.star,
                     label: '${host.noteGlobale!.toStringAsFixed(1)} étoiles',
                   ),
-                  const SizedBox(width: 16),
-                ],
-                if (host.nombreAvis != null) ...[
+                if (host.nombreAvis != null)
                   _buildStat(
                     icon: Icons.rate_review,
                     label: '${host.nombreAvis} avis',
                   ),
-                  const SizedBox(width: 16),
-                ],
                 if (host.nombreLogements != null)
                   _buildStat(
                     icon: Icons.home,

@@ -40,29 +40,68 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    // Récupérer le libellé du rôle depuis la jointure
+    // Récupérer et parser role_id de façon sécurisée (int ou String)
+    int parsedRoleId = 1;
+    if (json['role_id'] != null) {
+      if (json['role_id'] is int) {
+        parsedRoleId = json['role_id'] as int;
+      } else if (json['role_id'] is String) {
+        parsedRoleId = int.tryParse(json['role_id'] as String) ?? 1;
+      }
+    } else if (json['role'] != null) {
+      if (json['role'] is Map && json['role']['id'] != null) {
+        final rId = json['role']['id'];
+        parsedRoleId = rId is int ? rId : (int.tryParse(rId.toString()) ?? 1);
+      } else if (json['role'] is int) {
+        parsedRoleId = json['role'] as int;
+      } else if (json['role'] is String) {
+        parsedRoleId = int.tryParse(json['role'] as String) ?? 1;
+      }
+    }
+
+    // Récupérer le libellé du rôle depuis la jointure PostgreSQL/Supabase (relation users.role_id -> roles.id)
     String? roleLibelle;
+    
     if (json['role'] != null) {
       if (json['role'] is Map) {
-        roleLibelle = json['role']['libelle'] as String?;
+        roleLibelle = (json['role'] as Map<String, dynamic>)['libelle'] as String?;
       } else if (json['role'] is String) {
-        roleLibelle = json['role'] as String;
+        final roleStr = json['role'] as String;
+        if (int.tryParse(roleStr) == null) {
+          roleLibelle = roleStr;
+        }
+      }
+    }
+    
+    if (roleLibelle == null && json['roles'] != null) {
+      if (json['roles'] is Map) {
+        roleLibelle = (json['roles'] as Map<String, dynamic>)['libelle'] as String?;
+      } else if (json['roles'] is List && (json['roles'] as List).isNotEmpty) {
+        final firstRole = (json['roles'] as List).first;
+        if (firstRole is Map) {
+          roleLibelle = firstRole['libelle'] as String?;
+        }
+      } else if (json['roles'] is String) {
+        final roleStr = json['roles'] as String;
+        if (int.tryParse(roleStr) == null) {
+          roleLibelle = roleStr;
+        }
       }
     }
 
     return User(
-      id: json['id'] as int,
+      id: json['id'] is int ? json['id'] as int : (int.tryParse(json['id'].toString()) ?? 0),
       supabaseId: json['supabase_id'] as String?,
-      nom: json['nom'] as String,
-      prenom: json['prenom'] as String,
+      nom: json['nom'] as String? ?? '',
+      prenom: json['prenom'] as String? ?? '',
       password: json['password'] as String?,
       langue:
           (json['langue'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      telephone: json['telephone'] as String,
-      profession: json['profession'] as String,
+      telephone: json['telephone'] as String? ?? '',
+      profession: json['profession'] as String? ?? '',
       passions:
           (json['passions'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -70,12 +109,12 @@ class User {
           [],
       photo: json['photo'] as String?,
       bio: json['bio'] as String?,
-      email: json['email'] as String,
+      email: json['email'] as String? ?? '',
       emailVerifiedAt: json['email_verified_at'] != null
           ? DateTime.parse(json['email_verified_at'] as String)
           : null,
       actif: json['actif'] as String? ?? 'OUI',
-      roleId: json['role_id'] as int,
+      roleId: parsedRoleId,
       role: roleLibelle,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -174,12 +213,15 @@ class UserPreferences {
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
-      id: json['id'] as int?,
-      userId: json['user_id'] as int,
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
+      userId: json['user_id'] != null
+          ? (int.tryParse(json['user_id'].toString()) ?? 0)
+          : 0,
       divinitesPreferees: json['divinites_preferees'] != null
           ? (json['divinites_preferees'] as List<dynamic>)
-                .map((e) => e as int)
-                .toList()
+              .map((e) => int.tryParse(e.toString()) ?? 0)
+              .where((e) => e != 0)
+              .toList()
           : [],
       assisterRituel: json['assister_rituel'] as bool? ?? false,
       preferredCurrency: json['preferred_currency'] as String? ?? 'XOF',

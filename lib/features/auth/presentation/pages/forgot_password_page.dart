@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/utils/auth_error_formatter.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 
 /// Page de réinitialisation du mot de passe
@@ -38,12 +39,25 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       if (mounted) {
         setState(() => _emailSent = true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Email de réinitialisation envoyé ! Vérifiez votre boîte mail.',
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.mark_email_read_outlined, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Email de réinitialisation envoyé ! Vérifiez votre boîte mail.',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
             ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 5),
+            backgroundColor: Colors.green[700],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -51,8 +65,23 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AuthErrorFormatter.format(e),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -129,11 +158,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _resetPassword(),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez entrer votre email';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Veuillez saisir votre adresse email';
                         }
                         if (!value.contains('@') || !value.contains('.')) {
-                          return 'Email invalide';
+                          return 'Veuillez entrer une adresse email valide (ex: nom@domaine.com)';
                         }
                         return null;
                       },

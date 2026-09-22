@@ -10,7 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  print('🚀 Démarrage de l\'application Vodou Host...');
+  print(' Démarrage de l\'application Vodou Host...');
 
   // Initialize date formatting for French locale
   await initializeDateFormatting('fr_FR', null);

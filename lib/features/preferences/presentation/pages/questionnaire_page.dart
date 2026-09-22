@@ -206,7 +206,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.85,
+            childAspectRatio: 0.72,
           ),
           itemCount: _divinites.length,
           itemBuilder: (context, index) {
@@ -238,6 +238,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
         });
       },
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -254,50 +255,54 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
               ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 40, color: color),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              divinite.nom,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? color : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                divinite.description ?? '',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                child: Icon(icon, size: 32, color: color),
               ),
-            ),
-            if (isSelected)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Icon(
-                  Icons.check_circle,
-                  color: AppColors.success,
-                  size: 24,
+              const SizedBox(height: 8),
+              Text(
+                divinite.nom,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? color : AppColors.textPrimary,
                 ),
               ),
-          ],
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  divinite.description ?? '',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (isSelected)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: AppColors.success,
+                    size: 20,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -551,9 +556,13 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
               print('🏠 Redirection vers home (première fois)');
               context.go(AppRouter.home);
             } else {
-              // Retourner au profil (on vient via context.go, donc on utilise context.go)
+              // Retourner à l'onglet Profil (sur MainPageWrapper)
               print('🔙 Retour au profil');
-              context.go(AppRouter.home);
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                context.go(AppRouter.home, extra: 3); // Index 3 = Profil
+              }
             }
           }
         });

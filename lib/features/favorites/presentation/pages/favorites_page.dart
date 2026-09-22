@@ -21,6 +21,7 @@ class FavoritesPage extends ConsumerWidget {
     return Scaffold(
       appBar: CustomAppBar(
         title: AppStrings.favorites,
+        showBackButton: false,
         actions: [
           // Badge avec le nombre total de favoris
           if (favoritesCount > 0)
@@ -52,13 +53,25 @@ class FavoritesPage extends ConsumerWidget {
       body: favoriteListsAsync.when(
         data: (lists) {
           if (lists.isEmpty) {
-            return _buildEmptyState(context);
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(favoriteListsProvider);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: _buildEmptyState(context),
+                ),
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(favoriteListsProvider);
             },
             child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: lists.length + 1, // +1 pour le bouton créer
               itemBuilder: (context, index) {
@@ -93,11 +106,18 @@ class FavoritesPage extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateListDialog(context, ref),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add),
-        label: const Text('Nouvelle liste'),
+      floatingActionButton: favoriteListsAsync.when(
+        data: (lists) => lists.isNotEmpty
+            ? FloatingActionButton.extended(
+                heroTag: 'favorites_fab',
+                onPressed: () => _showCreateListDialog(context, ref),
+                backgroundColor: AppColors.primary,
+                icon: const Icon(Icons.add),
+                label: const Text('Nouvelle liste'),
+              )
+            : null,
+        loading: () => null,
+        error: (_, __) => null,
       ),
     );
   }

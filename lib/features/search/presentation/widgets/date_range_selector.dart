@@ -85,58 +85,70 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
                   border: Border.all(color: AppColors.primary),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Column(
-                      children: [
-                        const Text(
-                          'Arrivée',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Arrivée',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _dateDebut != null
-                              ? DateFormat(
-                                  'dd MMM yyyy',
-                                  'fr_FR',
-                                ).format(_dateDebut!)
-                              : 'Non sélectionnée',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _dateDebut != null
+                                  ? DateFormat(
+                                      'dd MMM yyyy',
+                                      'fr_FR',
+                                    ).format(_dateDebut!)
+                                  : 'Non sélectionnée',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Icon(Icons.arrow_forward, color: AppColors.primary),
-                    Column(
-                      children: [
-                        const Text(
-                          'Départ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(Icons.arrow_forward, color: AppColors.primary, size: 20),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Départ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _dateFin != null
-                              ? DateFormat(
-                                  'dd MMM yyyy',
-                                  'fr_FR',
-                                ).format(_dateFin!)
-                              : 'Non sélectionnée',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _dateFin != null
+                                  ? DateFormat(
+                                      'dd MMM yyyy',
+                                      'fr_FR',
+                                    ).format(_dateFin!)
+                                  : 'Non sélectionnée',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),

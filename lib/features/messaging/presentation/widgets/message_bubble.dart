@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/messaging/domain/models/chat_message.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -22,7 +23,7 @@ class MessageBubble extends StatelessWidget {
             CircleAvatar(
               radius: 16,
               backgroundImage: message.getSenderAvatar() != null
-                  ? NetworkImage(message.getSenderAvatar()!)
+                  ? AppImage.provider(message.getSenderAvatar()!)
                   : null,
               backgroundColor: AppColors.primary.withOpacity(0.1),
               child: message.getSenderAvatar() == null
@@ -113,22 +114,20 @@ class MessageBubble extends StatelessWidget {
     if (attachmentType == 'image') {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          message.attachment!,
+        child: AppImage(
+          url: message.attachment!,
           width: 200,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              width: 200,
-              height: 150,
-              color: AppColors.grey.withOpacity(0.2),
-              child: const Icon(
-                Icons.broken_image,
-                size: 48,
-                color: AppColors.grey,
-              ),
-            );
-          },
+          errorWidget: Container(
+            width: 200,
+            height: 150,
+            color: AppColors.grey.withOpacity(0.2),
+            child: const Icon(
+              Icons.broken_image,
+              size: 48,
+              color: AppColors.grey,
+            ),
+          ),
         ),
       );
     } else {

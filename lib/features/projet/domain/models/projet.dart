@@ -40,8 +40,12 @@ class Projet {
           : DateTime.now(),
       pourcentageContribution:
           (json['pourcentage_contribution'] as num?)?.toDouble() ?? 0.0,
-      categorieId: json['categorie_id'] as int? ?? 0,
-      categorieLibelle: json['categorie']?['libelle'] as String?,
+      categorieId: (json['categorie_id'] as num?)?.toInt() ?? 0,
+      categorieLibelle: json['categorie'] is Map
+          ? (json['categorie'] as Map<String, dynamic>)['libelle'] as String?
+          : (json['categories'] is Map
+              ? (json['categories'] as Map<String, dynamic>)['libelle'] as String?
+              : null),
       actif: json['actif'] as String? ?? 'OUI',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)

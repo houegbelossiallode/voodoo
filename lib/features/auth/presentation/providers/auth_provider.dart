@@ -41,18 +41,34 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
       '👂 AuthProvider: Écoute des changements d\'authentification activée',
     );
     _authSubscription = SupabaseService.instance.authStateChanges.listen(
-      (AuthState authState) {
+      (AuthState authState) async {
         final event = authState.event;
         print('🔔 AuthProvider: Événement auth reçu: $event');
 
-        // Recharger l'utilisateur lors des changements d'auth
+        // Recharger l'utilisateur lors de la connexion et des événements majeurs
         if (event == AuthChangeEvent.signedIn ||
             event == AuthChangeEvent.tokenRefreshed ||
-            event == AuthChangeEvent.userUpdated) {
+            event == AuthChangeEvent.userUpdated ||
+            event == AuthChangeEvent.initialSession) {
           print(
-            '🔄 AuthProvider: Rechargement de l\'utilisateur suite à: $event',
+            '🔄 AuthProvider: Rechargement automatique du profil suite à: $event',
           );
-          _loadCurrentUser();
+          await _loadCurrentUser();
+          
+          // Si c'est une connexion via deep link (confirmation email), rediriger vers home
+          if (event == AuthChangeEvent.signedIn && state.value != null) {
+            print('✅ Connexion via deep link détectée - Redirection vers home');
+            // La redirection sera gérée par le router automatiquement
+          }
+        } else if (event == AuthChangeEvent.passwordRecovery) {
+          print('🔑 AuthProvider: Événement de récupération de mot de passe reçu');
+          // En cas de récupération de mot de passe, tenter le chargement mais ne pas bloquer l'état si non trouvé
+          try {
+            final user = await _authRepository.getCurrentUser();
+            state = AsyncValue.data(user);
+          } catch (_) {
+            state = const AsyncValue.data(null);
+          }
         } else if (event == AuthChangeEvent.signedOut) {
           print('👋 AuthProvider: Déconnexion détectée');
           state = const AsyncValue.data(null);
@@ -68,7 +84,9 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
     print('🔄 AuthProvider: Chargement de l\'utilisateur actuel...');
     state = const AsyncValue.loading();
     try {
-      final user = await _authRepository.getCurrentUser();
+      final user = await _authRepository
+          .getCurrentUser()
+          .timeout(const Duration(seconds: 6));
       if (user != null) {
         print(
           '✅ AuthProvider: Utilisateur chargé: ${user.fullName} (${user.email})',
@@ -77,13 +95,14 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
         print('⚠️ AuthProvider: Aucun utilisateur connecté');
       }
       state = AsyncValue.data(user);
-    } catch (e, stack) {
-      print('❌ AuthProvider: Erreur lors du chargement: $e');
-      state = AsyncValue.error(e, stack);
+    } catch (e) {
+      print('⚠️ AuthProvider: Chargement ignoré ou délai dépassé: $e');
+      state = const AsyncValue.data(null);
     }
   }
 
   /// Inscription avec email
+  /// Note: Le profil sera créé après confirmation email lors de la première connexion
   Future<void> signUpWithEmail({
     required String email,
     required String password,
@@ -97,7 +116,7 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
     String? bio,
   }) async {
     try {
-      final user = await _authRepository.signUpWithEmail(
+      await _authRepository.signUpWithEmail(
         email: email,
         password: password,
         nom: nom,
@@ -109,7 +128,8 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
         passions: passions,
         bio: bio,
       );
-      state = AsyncValue.data(user);
+      // L'état reste null car l'utilisateur doit confirmer son email
+      state = const AsyncValue.data(null);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
       rethrow;
@@ -135,12 +155,11 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
 
   /// Déconnexion
   Future<void> signOut() async {
+    state = const AsyncValue.data(null);
     try {
       await _authRepository.signOut();
-      state = const AsyncValue.data(null);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-      rethrow;
+      print('⚠️ Erreur déconnexion AuthProvider: $e');
     }
   }
 
@@ -201,15 +220,51 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
   }
 
   /// Connexion avec Google
-  Future<void> signInWithGoogle() async {
+  Future<GoogleAuthResult?> signInWithGoogle() async {
     try {
       print('🔵 AuthProvider: Début connexion Google...');
       state = const AsyncValue.loading();
-      final user = await _authRepository.signInWithGoogle();
-      state = AsyncValue.data(user);
-      print('✅ AuthProvider: Connexion Google réussie');
+      final result = await _authRepository.signInWithGoogle();
+
+      if (result != null && !result.isNewUser && result.user != null) {
+        state = AsyncValue.data(result.user);
+        print('✅ AuthProvider: Connexion Google utilisateur existant réussie');
+      } else {
+        // Nouveau compte ou annulation : attente de sélection du rôle
+        state = const AsyncValue.data(null);
+      }
+      return result;
     } catch (e, stack) {
       print('❌ AuthProvider: Erreur Google - $e');
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
+
+  /// Finaliser la création du profil OAuth après la sélection du rôle
+  Future<void> completeOAuthProfile({
+    required String supabaseId,
+    required String email,
+    required String nom,
+    required String prenom,
+    required int roleId,
+    String? photo,
+  }) async {
+    try {
+      print('📝 AuthProvider: Création du profil Google avec le rôle $roleId...');
+      state = const AsyncValue.loading();
+      final user = await _authRepository.createOAuthUserProfile(
+        supabaseId: supabaseId,
+        email: email,
+        nom: nom,
+        prenom: prenom,
+        roleId: roleId,
+        photo: photo,
+      );
+      state = AsyncValue.data(user);
+      print('✅ AuthProvider: Profil Google créé avec succès !');
+    } catch (e, stack) {
+      print('❌ AuthProvider: Erreur finalisation profil OAuth - $e');
       state = AsyncValue.error(e, stack);
       rethrow;
     }

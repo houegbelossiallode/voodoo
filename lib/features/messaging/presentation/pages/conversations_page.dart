@@ -37,6 +37,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
 
     return Scaffold(
       appBar: CustomAppBar(
+        showBackButton: false,
         titleWidget: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -135,30 +136,40 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
             child: conversationsAsync.when(
               data: (conversations) {
                 if (conversations.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 80,
-                          color: AppColors.grey.withOpacity(0.5),
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(conversationsProvider);
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 80,
+                              color: AppColors.grey.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Aucune conversation',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Contactez un hôte pour commencer',
+                              style: TextStyle(fontSize: 14, color: AppColors.grey),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Aucune conversation',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Contactez un hôte pour commencer',
-                          style: TextStyle(fontSize: 14, color: AppColors.grey),
-                        ),
-                      ],
+                      ),
                     ),
                   );
                 }
@@ -168,6 +179,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                     ref.invalidate(conversationsProvider);
                   },
                   child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: conversations.length,
                     itemBuilder: (context, index) {
                       final conversation = conversations[index];

@@ -37,7 +37,7 @@ class EquipementsSection extends StatelessWidget {
 
   Widget _buildEquipementCard(BuildContext context, Equipement equipement) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.greyLight,
         borderRadius: BorderRadius.circular(12),
@@ -48,13 +48,16 @@ class EquipementsSection extends StatelessWidget {
         children: [
           Icon(
             _getIconForEquipement(equipement.libelle),
-            size: 20,
+            size: 18,
             color: AppColors.primary,
           ),
           const SizedBox(width: 8),
-          Text(
-            equipement.libelle,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          Flexible(
+            child: Text(
+              equipement.libelle,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

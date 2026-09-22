@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/accommodation/domain/models/avis.dart';
 import 'package:vodou/features/accommodation/presentation/providers/accommodation_details_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
@@ -170,7 +171,7 @@ class _AvisSectionState extends ConsumerState<AvisSection> {
                 CircleAvatar(
                   radius: 20,
                   backgroundImage: avis.userPhoto != null
-                      ? NetworkImage(avis.userPhoto!)
+                      ? AppImage.provider(avis.userPhoto!)
                       : null,
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   child: avis.userPhoto == null

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1039090276025",
+    "project_id": "voodoo-94f33",
+    "storage_bucket": "voodoo-94f33.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1039090276025:android:e43aa08028ec9138942d68",
+        "android_client_info": {
+          "package_name": "com.example.vodou"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1039090276025-bl2b33f8f9f6k6e6j9ckrp69fttpd5ct.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.vodou",
+            "certificate_hash": "bad0508d385494ffc4585e052e283cc58ab19456"
+          }
+        },
+        {
+          "client_id": "1039090276025-nunhis6i7o5n0sqooao4idt7kpdmmrm9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUuZLQmdS39_0tLMChubMSDpdg068kGO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1039090276025-nunhis6i7o5n0sqooao4idt7kpdmmrm9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

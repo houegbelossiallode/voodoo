@@ -41,7 +41,11 @@ class RitualDetailsPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(ritualDetailsProvider(ritualId));
+        },
+        child: CustomScrollView(
         slivers: [
           // Symbole d'en-tête (pas de photo dans le schéma)
           SliverAppBar(
@@ -277,7 +281,8 @@ class RitualDetailsPage extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
+    ),
+    bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,

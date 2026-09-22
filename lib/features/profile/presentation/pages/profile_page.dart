@@ -1,13 +1,19 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
-import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/core/config/supabase_config.dart';
+import 'package:vodou/core/services/file_upload_service.dart';
+import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/features/auth/presentation/providers/role_provider.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
 import 'package:vodou/features/booking/presentation/pages/my_reservations_page.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -17,7 +23,10 @@ class ProfilePage extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: const CustomAppBar(title: AppStrings.profile),
+      appBar: const CustomAppBar(
+        title: AppStrings.profile,
+        showBackButton: false,
+      ),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
@@ -69,52 +78,123 @@ class ProfilePage extends ConsumerWidget {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.primaryLight.withOpacity(
-                          0.2,
-                        ),
-                        backgroundImage: user.photo != null
-                            ? NetworkImage(user.photo!)
-                            : null,
-                        child: user.photo == null
-                            ? Text(
-                                '${user.prenom[0]}${user.nom[0]}',
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                        Stack(
+                          children: [
+                            _buildProfileAvatar(user),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => _updateProfilePhoto(context, ref, user),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user.fullName,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user.email,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user.profession,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textHint,
+                        const SizedBox(height: 16),
+                        Text(
+                          user.fullName,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Membre depuis ${_formatDate(user.createdAt)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                        const SizedBox(height: 4),
+                        Consumer(
+                          builder: (context, ref, child) {
+                            // 1. Si le libellé a été directement extrait via la relation Supabase (users.role_id -> roles.id)
+                            if (user.role != null &&
+                                user.role!.isNotEmpty &&
+                                int.tryParse(user.role!) == null) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  user.role!,
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            // 2. Sinon, résoudre dynamiquement par correspondance role_id dans la table roles
+                            final rolesAsync = ref.watch(rolesProvider);
+                            final String dynamicRoleLabel = rolesAsync.when(
+                              data: (roles) {
+                                final match = roles.where(
+                                  (r) => r.id == user.roleId,
+                                );
+                                return match.isNotEmpty
+                                    ? match.first.libelle
+                                    : '';
+                              },
+                              loading: () => 'Chargement...',
+                              error: (_, __) => '',
+                            );
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                dynamicRoleLabel.isNotEmpty
+                                    ? dynamicRoleLabel
+                                    : 'Visiteur',
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        Text(
+                          user.email,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (user.profession.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            user.profession,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Membre depuis ${_formatDate(user.createdAt)}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: () {
@@ -144,15 +224,13 @@ class ProfilePage extends ConsumerWidget {
                   AppStrings.personalInfo,
                   () => _showPersonalInfoDialog(context, user),
                 ),
-                // Afficher "Mes préférences" uniquement pour les visiteurs
-                if (user.role?.toLowerCase() == 'visiteur')
-                  _buildMenuItem(
-                    context,
-                    ref,
-                    Icons.favorite_outline,
-                    'Mes préférences',
-                    () => _navigateToPreferences(context),
-                  ),
+                _buildMenuItem(
+                  context,
+                  ref,
+                  Icons.favorite_outline,
+                  'Mes préférences',
+                  () => _navigateToPreferences(context),
+                ),
                 _buildMenuItem(
                   context,
                   ref,
@@ -217,6 +295,95 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
+  Widget _buildProfileAvatar(app_user.User user) {
+    final hasPhoto = user.photo != null && user.photo!.trim().isNotEmpty;
+    final photoUrl = hasPhoto ? user.photo!.trim() : '';
+
+    Widget fallbackInitials = Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withOpacity(0.2),
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '${user.prenom.isNotEmpty ? user.prenom[0] : ""}${user.nom.isNotEmpty ? user.nom[0] : ""}'
+            .toUpperCase(),
+        style: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+
+    if (!hasPhoto) {
+      return fallbackInitials;
+    }
+
+    final bool isNetwork =
+        photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
+
+    String cleanFilePath = photoUrl;
+    if (cleanFilePath.startsWith('file://')) {
+      try {
+        cleanFilePath = Uri.parse(cleanFilePath).toFilePath();
+      } catch (_) {
+        cleanFilePath = cleanFilePath.replaceFirst('file://', '');
+      }
+    }
+
+    final localFile = File(cleanFilePath);
+
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.primaryLight.withOpacity(0.2),
+      ),
+      child: ClipOval(
+        child: isNetwork
+            ? Image.network(
+                photoUrl,
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: 100,
+                    height: 100,
+                    color: AppColors.primaryLight.withOpacity(0.1),
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  print('❌ Erreur chargement photo réseau ($photoUrl): $error');
+                  return fallbackInitials;
+                },
+              )
+            : (localFile.existsSync()
+                ? Image.file(
+                    localFile,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      print(
+                        '❌ Erreur chargement photo fichier ($cleanFilePath): $error',
+                      );
+                      return fallbackInitials;
+                    },
+                  )
+                : fallbackInitials),
+      ),
+    );
+  }
+
   String _formatDate(DateTime date) {
     final months = [
       'janvier',
@@ -259,8 +426,8 @@ class ProfilePage extends ConsumerWidget {
   }
 
   void _navigateToPreferences(BuildContext context) {
-    // Rediriger vers le questionnaire en mode édition (isFirstTime = false)
-    context.go(AppRouter.questionnaire, extra: false);
+    // Naviguer vers le questionnaire en mode édition (isFirstTime = false)
+    context.push(AppRouter.questionnaire, extra: false);
   }
 
   void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
@@ -277,20 +444,9 @@ class ProfilePage extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              try {
-                await ref.read(currentUserProvider.notifier).signOut();
-                if (context.mounted) {
-                  context.go(AppRouter.login);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur: ${e.toString()}'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
+              await ref.read(currentUserProvider.notifier).signOut();
+              if (context.mounted) {
+                context.go(AppRouter.login);
               }
             },
             style: ElevatedButton.styleFrom(
@@ -298,6 +454,346 @@ class ProfilePage extends ConsumerWidget {
               foregroundColor: Colors.white,
             ),
             child: const Text('Déconnexion'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _updateProfilePhoto(
+    BuildContext context,
+    WidgetRef ref,
+    app_user.User user,
+  ) {
+    final messenger = ScaffoldMessenger.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Changer la photo de profil',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                  title: const Text('Choisir depuis la galerie'),
+                  onTap: () async {
+                    Navigator.pop(bottomSheetContext);
+                    _pickAndUploadImage(context, ref, ImageSource.gallery, messenger);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                  title: const Text('Prendre une photo'),
+                  onTap: () async {
+                    Navigator.pop(bottomSheetContext);
+                    _pickAndUploadImage(context, ref, ImageSource.camera, messenger);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.link, color: AppColors.primary),
+                  title: const Text('Entrer l\'URL d\'une image'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    _showUrlInputDialog(context, ref, user, messenger);
+                  },
+                ),
+                if (user.photo != null && user.photo!.isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                    title: const Text(
+                      'Supprimer la photo de profil',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    onTap: () {
+                      Navigator.pop(bottomSheetContext);
+                      _showDeletePhotoConfirmation(context, ref, messenger);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeletePhotoConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    ScaffoldMessengerState messenger,
+  ) {
+    final user = ref.read(currentUserProvider).value;
+    final currentPhotoUrl = user?.photo ?? '';
+
+    if (currentPhotoUrl.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        bool isDeleting = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Supprimer la photo'),
+              content: isDeleting
+                  ? const Row(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 20),
+                        Expanded(
+                          child: Text('Suppression de la photo de profil...'),
+                        ),
+                      ],
+                    )
+                  : const Text(
+                      'Êtes-vous sûr de vouloir supprimer votre photo de profil ?',
+                    ),
+              actions: isDeleting
+                  ? []
+                  : [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Annuler'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          setState(() {
+                            isDeleting = true;
+                          });
+
+                          try {
+                            final fileUploadService =
+                                FileUploadService(SupabaseService.instance);
+                            await fileUploadService
+                                .deleteProfilePhoto(currentPhotoUrl);
+
+                            await ref
+                                .read(currentUserProvider.notifier)
+                                .updateProfile(
+                                  photo: '',
+                                );
+
+                            Navigator.pop(dialogContext);
+
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    '✅ Photo de profil supprimée avec succès'),
+                                backgroundColor: AppColors.success,
+                                duration: Duration(seconds: 4),
+                              ),
+                            );
+                          } catch (e) {
+                            Navigator.pop(dialogContext);
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text('❌ Erreur lors de la suppression: $e'),
+                                backgroundColor: AppColors.error,
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Supprimer'),
+                      ),
+                    ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadImage(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+    ScaffoldMessengerState messenger,
+  ) async {
+    debugPrint('📸 [PROFILE] _pickAndUploadImage démarré (source: $source)');
+
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) {
+        debugPrint('⚠️ [PROFILE] Aucun fichier sélectionné par l\'utilisateur.');
+        return;
+      }
+
+      bool dialogShown = false;
+      if (context.mounted) {
+        dialogShown = true;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Expanded(child: Text('Envoi de la photo de profil...')),
+              ],
+            ),
+          ),
+        );
+      }
+
+      String cleanLocalPath = pickedFile.path;
+      if (cleanLocalPath.startsWith('file://')) {
+        try {
+          cleanLocalPath = Uri.parse(cleanLocalPath).toFilePath();
+        } catch (_) {
+          cleanLocalPath = cleanLocalPath.replaceFirst('file://', '');
+        }
+      }
+
+      final fileUploadService = FileUploadService(SupabaseService.instance);
+      final String publicUrl = await fileUploadService.uploadFile(
+        file: File(cleanLocalPath),
+        bucket: SupabaseConfig.userPhotosBucket,
+        folder: 'avatars',
+      );
+
+      await ref.read(currentUserProvider.notifier).updateProfile(
+            photo: publicUrl,
+          );
+
+      debugPrint('✅ [PROFILE] Colonne photo mise à jour avec succès dans la table users!');
+
+      if (dialogShown && context.mounted) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('✅ Photo de profil mise à jour avec succès'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('❌ [PROFILE] ERREUR DANS _pickAndUploadImage: $e');
+      debugPrint('❌ [PROFILE] StackTrace: $stack');
+      if (context.mounted) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur lors de la mise à jour de la photo: $e'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    }
+  }
+
+  void _showUrlInputDialog(
+    BuildContext context,
+    WidgetRef ref,
+    app_user.User user,
+    ScaffoldMessengerState messenger,
+  ) {
+    final photoUrlController = TextEditingController(text: user.photo ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('URL de la photo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Entrez l\'URL de votre nouvelle photo de profil :',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: photoUrlController,
+              decoration: const InputDecoration(
+                labelText: 'URL (.png, .jpg, .jpeg)',
+                hintText: 'https://exemple.com/photo.jpg',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newPhoto = photoUrlController.text.trim();
+
+              if (newPhoto.isNotEmpty) {
+                final lowerUrl = newPhoto.toLowerCase();
+                final bool isValidExtension = lowerUrl.endsWith('.png') ||
+                    lowerUrl.endsWith('.jpg') ||
+                    lowerUrl.endsWith('.jpeg') ||
+                    lowerUrl.contains('.png?') ||
+                    lowerUrl.contains('.jpg?') ||
+                    lowerUrl.contains('.jpeg?');
+
+                if (!isValidExtension) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        '❌ L\'URL doit pointer vers une image PNG, JPG ou JPEG.',
+                      ),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+              }
+
+              Navigator.pop(dialogContext);
+
+              try {
+                await ref.read(currentUserProvider.notifier).updateProfile(
+                      photo: newPhoto.isEmpty ? null : newPhoto,
+                    );
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ Photo de profil mise à jour'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('❌ Erreur lors de la mise à jour: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            child: const Text('Enregistrer'),
           ),
         ],
       ),
@@ -318,17 +814,18 @@ class ProfilePage extends ConsumerWidget {
               const SizedBox(height: 12),
               _buildInfoRow('Email', user.email),
               const SizedBox(height: 12),
-              _buildInfoRow('Téléphone', user.telephone),
+              _buildInfoRow('Téléphone', user.telephone.isNotEmpty ? user.telephone : 'Non renseigné'),
               const SizedBox(height: 12),
-              _buildInfoRow('Profession', user.profession),
+              _buildInfoRow('Profession', user.profession.isNotEmpty ? user.profession : 'Non renseignée'),
               const SizedBox(height: 12),
               _buildInfoRow(
                 'Rôle',
-                user.roleId == 1
-                    ? 'Visiteur'
-                    : user.roleId == 2
-                    ? 'Hôte'
-                    : 'Administrateur',
+                user.role ??
+                    (user.roleId == 1
+                        ? 'Visiteur'
+                        : user.roleId == 2
+                            ? 'Hôte'
+                            : 'Administrateur'),
               ),
               const SizedBox(height: 12),
               _buildInfoRow('Membre depuis', _formatDate(user.createdAt)),

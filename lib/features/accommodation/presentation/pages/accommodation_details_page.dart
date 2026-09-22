@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/features/favorites/presentation/providers/favorite_provider.dart';
+import 'package:vodou/features/favorites/presentation/widgets/favorite_list_dialog.dart';
 import 'package:vodou/features/accommodation/presentation/providers/accommodation_details_provider.dart';
 import 'package:vodou/features/accommodation/presentation/widgets/photo_carousel.dart';
 import 'package:vodou/features/accommodation/presentation/widgets/equipements_section.dart';
@@ -18,6 +21,7 @@ import 'package:vodou/features/home/domain/models/divinite.dart';
 import 'package:vodou/features/accommodation/domain/models/equipement.dart';
 import 'package:vodou/features/accommodation/domain/models/avis.dart';
 import 'package:vodou/features/accommodation/domain/models/host_info.dart';
+import 'package:vodou/features/booking/presentation/widgets/availability_calendar_widget.dart';
 
 class AccommodationDetailsPage extends ConsumerWidget {
   final int accommodationId;
@@ -93,21 +97,17 @@ class AccommodationDetailsPage extends ConsumerWidget {
               pinned: true,
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    context.go(AppRouter.home);
+                  }
+                },
+              ),
               flexibleSpace: FlexibleSpaceBar(
-                title: Text(
-                  logement.titre,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(0, 1),
-                        blurRadius: 3.0,
-                        color: Color.fromARGB(128, 0, 0, 0),
-                      ),
-                    ],
-                  ),
-                ),
                 background: PhotoCarousel(photos: logement.photos),
               ),
               actions: [
@@ -115,14 +115,46 @@ class AccommodationDetailsPage extends ConsumerWidget {
                   icon: const Icon(Icons.share),
                   color: Colors.white,
                   onPressed: () {
-                    // TODO: Partager
+                    Clipboard.setData(
+                      ClipboardData(
+                        text: 'Découvrez ${logement.titre} sur VodooHost !',
+                      ),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Lien du logement copié !'),
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.favorite_outline),
-                  color: Colors.white,
-                  onPressed: () {
-                    // TODO: Ajouter aux favoris
+                Consumer(
+                  builder: (context, ref, child) {
+                    final favoriteNotifier = ref.watch(
+                      favoriteNotifierProvider.notifier,
+                    );
+                    final isFavorite = ref
+                        .watch(favoriteNotifierProvider)
+                        .contains(logement.id);
+
+                    return IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_outline,
+                        color: isFavorite ? AppColors.favorite : Colors.white,
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => FavoriteListDialog(
+                            logementId: logement.id,
+                            logementTitre: logement.titre,
+                          ),
+                        ).then((_) {
+                          favoriteNotifier.refresh();
+                        });
+                      },
+                    );
                   },
                 ),
               ],
@@ -180,40 +212,75 @@ class AccommodationDetailsPage extends ConsumerWidget {
                     const SizedBox(height: 8),
 
                     // Localisation
-                    if (logement.adresse != null)
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            size: 16,
-                            color: AppColors.grey,
+                    if (logement.adresse != null ||
+                        (logement.latitude != null &&
+                            logement.longitude != null))
+                      InkWell(
+                        onTap: () => _showMapsConfirmationDialog(
+                          context,
+                          logement.latitude,
+                          logement.longitude,
+                          logement.adresse,
+                          logement.titre,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 4,
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              logement.adresse!,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          if (logement.latitude != null &&
-                              logement.longitude != null)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.map,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on,
+                                size: 18,
                                 color: AppColors.primary,
-                                size: 20,
                               ),
-                              onPressed: () => _showMapsConfirmationDialog(
-                                context,
-                                logement.latitude!,
-                                logement.longitude!,
-                                logement.titre,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  logement.adresse ?? 'Voir la carte',
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
-                              tooltip: 'Voir sur Google Maps',
-                            ),
-                        ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.map,
+                                      color: AppColors.primary,
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Google Maps',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
 
                     const SizedBox(height: 16),
@@ -318,6 +385,15 @@ class AccommodationDetailsPage extends ConsumerWidget {
                       error: (_, __) => const SizedBox.shrink(),
                     ),
 
+                    // Calendrier de disponibilité
+                    AvailabilityCalendarWidget(
+                      logementId: logement.id,
+                      onDateSelected: (_) {
+                        context.push(AppRouter.booking, extra: logement);
+                      },
+                    ),
+                    const Divider(height: 32),
+
                     // Informations sur l'hôte
                     hostAsync.when(
                       data: (host) => Column(
@@ -393,34 +469,14 @@ class AccommodationDetailsPage extends ConsumerWidget {
                         color: AppColors.primary,
                       ),
                     ),
-                    if (logement.disponibilite)
-                      const Text(
-                        'Disponible',
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    else
-                      const Text(
-                        'Indisponible',
-                        style: TextStyle(
-                          color: AppColors.error,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
                   ],
                 ),
               ),
               ElevatedButton(
-                onPressed: logement.disponibilite
-                    ? () {
-                        // Navigation vers la page de réservation avec BookingPageV2
-                        context.push(AppRouter.booking, extra: logement);
-                      }
-                    : null,
+                onPressed: () {
+                  // Navigation vers la page de réservation avec BookingPageV2
+                  context.push(AppRouter.booking, extra: logement);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -440,8 +496,9 @@ class AccommodationDetailsPage extends ConsumerWidget {
 
   void _showMapsConfirmationDialog(
     BuildContext context,
-    double latitude,
-    double longitude,
+    double? latitude,
+    double? longitude,
+    String? adresse,
     String titre,
   ) {
     showDialog(
@@ -459,7 +516,13 @@ class AccommodationDetailsPage extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              await _openGoogleMaps(context, latitude, longitude, titre);
+              await _openGoogleMaps(
+                context,
+                latitude,
+                longitude,
+                adresse,
+                titre,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -474,33 +537,41 @@ class AccommodationDetailsPage extends ConsumerWidget {
 
   Future<void> _openGoogleMaps(
     BuildContext context,
-    double latitude,
-    double longitude,
+    double? latitude,
+    double? longitude,
+    String? adresse,
     String titre,
   ) async {
-    // URL pour Google Maps avec les coordonnées
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
-    );
+    Uri url;
+    if (latitude != null &&
+        longitude != null &&
+        (latitude != 0 || longitude != 0)) {
+      url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
+      );
+    } else if (adresse != null && adresse.isNotEmpty) {
+      final query = Uri.encodeComponent('$titre, $adresse');
+      url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    } else {
+      final query = Uri.encodeComponent(titre);
+      url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    }
 
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Impossible d\'ouvrir Google Maps'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
+      print('⚠️ Erreur d\'ouverture Maps: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('Impossible d\'ouvrir la carte: $e'),
             backgroundColor: AppColors.error,
           ),
         );

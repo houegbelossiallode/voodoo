@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vodou/core/widgets/custom_app_bar.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/custom_app_bar.dart';
+import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/favorites/domain/models/favorite.dart';
 import 'package:vodou/features/favorites/presentation/providers/favorite_provider.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/features/home/presentation/pages/main_page.dart';
 
 /// Page de détail d'une liste de favoris
 class FavoriteListDetailPage extends ConsumerWidget {
@@ -69,7 +72,18 @@ class FavoriteListDetailPage extends ConsumerWidget {
       body: logementsAsync.when(
         data: (logements) {
           if (logements.isEmpty) {
-            return _buildEmptyState(context);
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(favoriteListLogementsProvider(favoriteList.id));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: _buildEmptyState(context, ref),
+                ),
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {
@@ -112,7 +126,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -139,12 +153,17 @@ class FavoriteListDetailPage extends ConsumerWidget {
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).pop();
+              ref.read(bottomNavIndexProvider.notifier).state = 0;
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+              context.go(AppRouter.home);
             },
             icon: const Icon(Icons.search),
             label: const Text('Explorer les logements'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
@@ -284,7 +303,14 @@ class FavoriteListDetailPage extends ConsumerWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // TODO: Navigate to details
+                        // Naviguer vers la page de détails du logement
+                        // Utilise GoRouter pour conserver le routage centralisé
+                        context.go(
+                          AppRouter.accommodationDetails.replaceFirst(
+                            ':id',
+                            logement.id.toString(),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -293,7 +319,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
                           vertical: 8,
                         ),
                       ),
-                      child: const Text('Voir détails'),
+                      child: const Text('Voir détails →'),
                     ),
                   ],
                 ),

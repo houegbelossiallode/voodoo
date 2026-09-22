@@ -103,6 +103,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
       // Bouton flottant pour réinitialiser les filtres
       floatingActionButton: filters.hasFilters
           ? FloatingActionButton.extended(
+              heroTag: 'search_fab',
               onPressed: () {
                 ref.read(searchFiltersProvider.notifier).clearFilters();
               },

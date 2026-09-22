@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 
 /// Liste des résultats de recherche
@@ -47,16 +48,13 @@ class _LogementSearchCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: logement.firstPhotoUrl != null
-                      ? Image.network(
-                          logement.firstPhotoUrl!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _buildPlaceholderImage(),
-                        )
-                      : _buildPlaceholderImage(),
+                  child: AppImage(
+                    url: logement.firstPhotoUrl,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorWidget: _buildPlaceholderImage(),
+                  ),
                 ),
 
                 // Badge de disponibilité

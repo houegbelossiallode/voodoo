@@ -16,6 +16,10 @@ class SupabaseConfig {
   static const String dbUsername = 'postgres.vbfgfbqgtattrajdmeit';
   static const String dbPassword = '0HJte9fxqSeYzHOG';
 
+  // Flag pour désactiver la confirmation email en développement
+  // Mettre à true pour désactiver la confirmation email (utile pour les tests)
+  static const bool disableEmailConfirmation = false;
+
   // Tables de la base de données (alignées avec Laravel)
   static const String usersTable = 'users';
   static const String rolesTable = 'roles';
@@ -48,11 +52,11 @@ class SupabaseConfig {
   static const String revenuPlateformesTable = 'revenu_plateformes';
 
   // Storage buckets
-  static const String logementImagesBucket = 'logement-images';
-  static const String userPhotosBucket = 'user-photos';
-  static const String rituelImagesBucket = 'rituel-images';
-  static const String diviniteImagesBucket = 'divinite-images';
-  static const String projetImagesBucket = 'projet-images';
+  static const String logementImagesBucket = 'logements';
+  static const String userPhotosBucket = 'profils';
+  static const String rituelImagesBucket = 'rituels';
+  static const String diviniteImagesBucket = 'profils';
+  static const String projetImagesBucket = 'profils';
 
   // Configuration de l'authentification
   static const bool enableEmailAuth = true;
@@ -65,13 +69,13 @@ class SupabaseConfig {
   // OAuth Configuration
   // IMPORTANT: À configurer dans Supabase Dashboard → Authentication → Providers
   // Google: Récupérer depuis Google Cloud Console
-  // Web Client ID pour l'authentification Supabase
+  // Web Client ID pour l'authentification Supabase (Project voodoo-94f33)
   static const String googleClientId =
-      '563099795585-f9pr51ihtuvcv8s4n23cpcr2r9m80msf.apps.googleusercontent.com';
+      '1039090276025-nunhis6i7o5n0sqooao4idt7kpdmmrm9.apps.googleusercontent.com';
 
   // Android Client ID pour la validation SHA-1 sur Android
   static const String googleAndroidClientId =
-      '563099795585-t6toaj2erv817l9hho0lrhivivq6g18p.apps.googleusercontent.com';
+      '1039090276025-bl2b33f8f9f6k6e6j9ckrp69fttpd5ct.apps.googleusercontent.com';
 
   // Facebook: Récupérer depuis Facebook Developers
   static const String facebookAppId = 'YOUR_FACEBOOK_APP_ID';

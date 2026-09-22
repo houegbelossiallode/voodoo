@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/core/services/supabase_service.dart';
+import 'package:vodou/core/config/supabase_config.dart';
 import 'package:uuid/uuid.dart';
 
 /// Service pour gérer l'upload de fichiers vers Supabase Storage
@@ -17,9 +20,6 @@ class FileUploadService {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
       );
 
       if (image != null) {
@@ -36,9 +36,6 @@ class FileUploadService {
     try {
       final XFile? photo = await _imagePicker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
       );
 
       if (photo != null) {
@@ -68,30 +65,74 @@ class FileUploadService {
   }
 
   /// Upload un fichier vers Supabase Storage
-  /// Retourne l'URL publique du fichier uploadé
   Future<String> uploadFile({
     required File file,
     required String bucket,
     String? folder,
   }) async {
-    try {
-      // Générer un nom de fichier unique
-      final String fileExtension = file.path.split('.').last;
-      final String fileName = '${_uuid.v4()}.$fileExtension';
-      final String filePath = folder != null ? '$folder/$fileName' : fileName;
+    final String rawPath = file.path;
+    final String cleanPath = rawPath.startsWith('file://')
+        ? Uri.parse(rawPath).toFilePath()
+        : rawPath;
+    final File actualFile = File(cleanPath);
 
-      // Upload vers Supabase Storage
-      await _supabaseService.client.storage.from(bucket).upload(filePath, file);
-
-      // Récupérer l'URL publique
-      final String publicUrl = _supabaseService.client.storage
-          .from(bucket)
-          .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (e) {
-      throw Exception('Erreur lors de l\'upload du fichier: $e');
+    if (!await actualFile.exists()) {
+      throw Exception('Le fichier image n\'existe pas sur l\'appareil ($cleanPath)');
     }
+
+    final String rawExtension = actualFile.path.split('.').last.toLowerCase();
+    final String fileExtension = rawExtension.split('?').first;
+    final String fileName = '${_uuid.v4()}.$fileExtension';
+    final String filePath = folder != null ? '$folder/$fileName' : fileName;
+
+    String contentType = 'image/jpeg';
+    if (fileExtension == 'png') contentType = 'image/png';
+    if (fileExtension == 'webp') contentType = 'image/webp';
+    if (fileExtension == 'gif') contentType = 'image/gif';
+    if (fileExtension == 'jpg') contentType = 'image/jpg';
+    if (fileExtension == 'jpeg') contentType = 'image/jpeg';
+
+    final bytes = await actualFile.readAsBytes();
+
+    debugPrint('🚀 Envoi vers Supabase Storage: bucket="$bucket", path="$filePath", size=${bytes.length} bytes');
+
+    String targetBucket = bucket;
+    try {
+      await _supabaseService.client.storage.from(targetBucket).uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: contentType,
+              upsert: true,
+            ),
+          );
+    } catch (storageErr) {
+      debugPrint('⚠️ Échec bucket "$targetBucket": $storageErr. Tentative avec bucket "logements"...');
+      try {
+        targetBucket = 'logements';
+        await _supabaseService.client.storage.from(targetBucket).uploadBinary(
+              filePath,
+              bytes,
+              fileOptions: FileOptions(
+                contentType: contentType,
+                upsert: true,
+              ),
+            );
+      } catch (fallbackErr) {
+        debugPrint('❌ Échec des deux buckets Supabase Storage ($bucket / logements): $storageErr / $fallbackErr');
+        throw Exception(
+          'Échec upload Supabase Storage ($bucket): $storageErr',
+        );
+      }
+    }
+
+    // Récupérer l'URL publique
+    final String publicUrl = _supabaseService.client.storage
+        .from(targetBucket)
+        .getPublicUrl(filePath);
+
+    debugPrint('✅ Photo téléversée avec succès sur Supabase ($targetBucket): $publicUrl');
+    return publicUrl;
   }
 
   /// Upload une image de message
@@ -112,6 +153,36 @@ class FileUploadService {
       await _supabaseService.client.storage.from(bucket).remove([filePath]);
     } catch (e) {
       throw Exception('Erreur lors de la suppression du fichier: $e');
+    }
+  }
+
+  /// Supprimer la photo de profil depuis son URL publique
+  Future<void> deleteProfilePhoto(String photoUrl) async {
+    if (photoUrl.isEmpty || !photoUrl.startsWith('http')) return;
+    try {
+      String bucket = SupabaseConfig.userPhotosBucket; // 'profils'
+      String filePath = '';
+
+      if (photoUrl.contains('/$bucket/')) {
+        filePath = photoUrl.split('/$bucket/').last;
+      } else if (photoUrl.contains('/logements/')) {
+        bucket = 'logements';
+        filePath = photoUrl.split('/logements/').last;
+      } else {
+        final uri = Uri.parse(photoUrl);
+        final pathSegments = uri.pathSegments;
+        if (pathSegments.length >= 2) {
+          filePath = pathSegments.sublist(pathSegments.length - 2).join('/');
+        }
+      }
+
+      if (filePath.isNotEmpty) {
+        debugPrint('🗑️ Suppression du fichier Supabase Storage: bucket="$bucket", path="$filePath"');
+        await _supabaseService.client.storage.from(bucket).remove([filePath]);
+        debugPrint('✅ Fichier supprimé du Storage Supabase!');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Erreur suppression Storage (non bloquant): $e');
     }
   }
 

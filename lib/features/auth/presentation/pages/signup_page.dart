@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/core/utils/auth_error_formatter.dart';
 import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/role_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/first_time_visitor_provider.dart';
+import 'package:vodou/features/auth/presentation/widgets/google_role_selection_dialog.dart';
 import 'package:vodou/features/auth/domain/models/role.dart';
 
 /// Page d'inscription avec email et mot de passe
@@ -42,15 +46,127 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     super.dispose();
   }
 
+  Future<void> _handleSuccessfulLogin() async {
+    final userAsync = ref.read(currentUserProvider);
+    final user = userAsync.value;
+
+    if (user == null) {
+      print('⚠️ Utilisateur non trouvé après inscription');
+      context.go(AppRouter.festivalSelection, extra: true);
+      return;
+    }
+
+    final userRole = user.role?.toLowerCase() ?? '';
+    print('👤 Rôle utilisateur: $userRole');
+
+    if (userRole == 'visiteur') {
+      context.go(AppRouter.festivalSelection, extra: true);
+    } else {
+      context.go(AppRouter.festivalSelection, extra: false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final result =
+          await ref.read(currentUserProvider.notifier).signInWithGoogle();
+
+      if (result == null) return;
+
+      if (result.isNewUser) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+
+          final Role? selectedRole = await GoogleRoleSelectionDialog.show(
+            context,
+            userName: result.prenom ?? result.nom ?? '',
+          );
+
+          if (selectedRole != null && mounted) {
+            setState(() => _isLoading = true);
+
+            if (selectedRole.libelle.toLowerCase() == 'visiteur') {
+              ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
+            }
+
+            await ref.read(currentUserProvider.notifier).completeOAuthProfile(
+                  supabaseId: result.supabaseId!,
+                  email: result.email!,
+                  nom: result.nom!,
+                  prenom: result.prenom!,
+                  roleId: selectedRole.id,
+                  photo: result.photo,
+                );
+
+            if (mounted) {
+              _handleSuccessfulLogin();
+            }
+          } else if (mounted) {
+            await ref.read(currentUserProvider.notifier).signOut();
+          }
+        }
+      } else {
+        if (mounted) {
+          _handleSuccessfulLogin();
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur Google: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AuthErrorFormatter.format(e),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
     // Vérifier que les mots de passe correspondent
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Les mots de passe ne correspondent pas'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Les mots de passe ne correspondent pas',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
@@ -59,9 +175,24 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     // Vérifier qu'un rôle est sélectionné
     if (_selectedRole == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner un rôle'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.badge_outlined, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Veuillez sélectionner un rôle',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
@@ -96,21 +227,53 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Compte créé avec succès !'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Compte créé avec succès ! Veuillez confirmer votre email.',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green[700],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 3),
           ),
         );
 
-        // Le router va gérer la redirection automatiquement
-        print('🔄 Attente de la redirection automatique par le router...');
+        // Rediriger vers la page de confirmation email
+        print('🔄 Redirection vers la page de confirmation email...');
+        context.go(AppRouter.emailConfirmation, extra: _emailController.text.trim());
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de l\'inscription: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AuthErrorFormatter.format(e),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -167,8 +330,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre prénom';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez saisir votre prénom';
                     }
                     return null;
                   },
@@ -191,8 +354,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre nom';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez saisir votre nom';
                     }
                     return null;
                   },
@@ -215,11 +378,11 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre email';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez saisir votre adresse email';
                     }
                     if (!value.contains('@') || !value.contains('.')) {
-                      return 'Email invalide';
+                      return 'Veuillez entrer une adresse email valide (ex: nom@domaine.com)';
                     }
                     return null;
                   },
@@ -242,8 +405,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre numéro de téléphone';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez saisir votre numéro de téléphone';
                     }
                     return null;
                   },
@@ -269,10 +432,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                             filled: true,
                             fillColor: Colors.grey[50],
                           ),
-                          items: roles.map((role) {
+                          items: roles
+                              .where((role) =>
+                                  !role.libelle.toLowerCase().contains('admin'))
+                              .map((role) {
                             return DropdownMenuItem<Role>(
                               value: role,
-                              child: Text(role.libelle),
+                              child: Text(
+                                role.libelle,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }).toList(),
                           onChanged: (Role? newValue) {
@@ -282,7 +451,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                           },
                           validator: (value) {
                             if (value == null) {
-                              return 'Veuillez sélectionner un rôle';
+                              return 'Veuillez choisir votre rôle';
                             }
                             return null;
                           },
@@ -335,8 +504,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre profession';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez indiquer votre profession';
                     }
                     return null;
                   },
@@ -370,7 +539,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer un mot de passe';
+                      return 'Veuillez créer un mot de passe';
                     }
                     if (value.length < 6) {
                       return 'Le mot de passe doit contenir au moins 6 caractères';
@@ -413,6 +582,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     if (value == null || value.isEmpty) {
                       return 'Veuillez confirmer votre mot de passe';
                     }
+                    if (value != _passwordController.text) {
+                      return 'Les deux mots de passe ne sont pas identiques';
+                    }
                     return null;
                   },
                 ),
@@ -452,9 +624,12 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'Vous avez déjà un compte ? ',
-                      style: TextStyle(color: AppColors.textSecondary),
+                    Flexible(
+                      child: Text(
+                        'Vous avez déjà un compte ? ',
+                        style: TextStyle(color: AppColors.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     TextButton(
                       onPressed: () {

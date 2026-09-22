@@ -5,9 +5,9 @@ class KKiaPayConfig {
   // -----------------------------
 
   /// ⚠️ Clé à utiliser dans l'app Flutter
-  static const String publicKeySandbox = 'c7d7ae40d04f11f0ab1c99b320df21bd';
+  static const String publicKeySandbox = '2fd08370652e11efbf02478c5adba4b8';
   static const String publicKeyLive =
-      'ab96d73fbe041ae08a74e2887480f42bef757dc3';
+      '2fd08370652e11efbf02478c5adba4b8';
 
   /// true = production / false = sandbox
   static const bool isLive = false;
@@ -24,6 +24,9 @@ class KKiaPayConfig {
 
   /// Montant minimum
   static const double minAmount = 100;
+
+  /// Montant maximum autorisé par KKiaPay (10 Millions XOF)
+  static const double maxAmount = 10000000;
 
   // -----------------------------
   // 💳 Méthodes de paiement (facultatif)

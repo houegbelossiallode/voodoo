@@ -6,6 +6,9 @@ import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/booking/presentation/providers/my_reservations_provider.dart';
 import 'package:vodou/features/booking/domain/models/reservation.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/features/home/presentation/pages/main_page.dart';
 
 /// Page pour afficher les réservations de l'utilisateur
 class MyReservationsPage extends ConsumerWidget {
@@ -16,7 +19,9 @@ class MyReservationsPage extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Mes réservations'),
+      appBar: const CustomAppBar(
+        title: 'Mes réservations',
+      ),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
@@ -30,29 +35,56 @@ class MyReservationsPage extends ConsumerWidget {
           return reservationsAsync.when(
             data: (reservations) {
               if (reservations.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 80,
-                        color: AppColors.grey.withOpacity(0.5),
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(myReservationsProvider(user.id));
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.7,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 80,
+                            color: AppColors.grey.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Aucune réservation',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Vos réservations apparaîtront ici',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              ref.read(bottomNavIndexProvider.notifier).state = 0;
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                              context.go(AppRouter.home);
+                            },
+                            icon: const Icon(Icons.search),
+                            label: const Text('Explorer les logements'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Aucune réservation',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Vos réservations apparaîtront ici',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -62,6 +94,7 @@ class MyReservationsPage extends ConsumerWidget {
                   ref.invalidate(myReservationsProvider(user.id));
                 },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   itemCount: reservations.length,
                   itemBuilder: (context, index) {

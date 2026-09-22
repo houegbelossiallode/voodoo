@@ -20,7 +20,7 @@ class SupabaseService {
       url: SupabaseConfig.supabaseUrl,
       anonKey: SupabaseConfig.supabaseAnonKey,
       authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
+        authFlowType: AuthFlowType.implicit,
         autoRefreshToken: true,
       ),
       realtimeClientOptions: const RealtimeClientOptions(

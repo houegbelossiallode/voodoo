@@ -1,9 +1,11 @@
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/router/go_router_refresh_stream.dart';
 import 'package:vodou/core/services/supabase_service.dart';
+import 'package:vodou/features/auth/data/repositories/auth_repository.dart';
 import 'package:vodou/features/auth/presentation/pages/login_page.dart';
 import 'package:vodou/features/auth/presentation/pages/signup_page.dart';
 import 'package:vodou/features/auth/presentation/pages/forgot_password_page.dart';
+import 'package:vodou/features/auth/presentation/pages/email_confirmation_page.dart';
 import 'package:vodou/features/home/presentation/pages/main_page_wrapper.dart';
 import 'package:vodou/features/accommodation/presentation/pages/accommodation_details_page.dart';
 import 'package:vodou/features/booking/presentation/pages/booking_page_v2.dart';
@@ -18,6 +20,7 @@ class AppRouter {
   static const String login = '/';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
+  static const String emailConfirmation = '/email-confirmation';
   static const String festivalSelection = '/festival-selection';
   static const String questionnaire = '/questionnaire';
   static const String home = '/home';
@@ -33,7 +36,9 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: login,
     debugLogDiagnostics: true,
-    redirect: (context, state) {
+    // Configuration pour accepter les deep links personnalisés
+    // Le schéma 'vodoohost://' est configuré dans AndroidManifest.xml
+    redirect: (context, state) async {
       final supabase = SupabaseService.instance;
       final isAuthenticated = supabase.isAuthenticated;
       final isGoingToAuth =
@@ -41,32 +46,28 @@ class AppRouter {
           state.matchedLocation == signup ||
           state.matchedLocation == forgotPassword;
 
-      // Pages publiques accessibles sans connexion
-      final publicPages = [
-        login,
-        signup,
-        forgotPassword,
-        festivalSelection,
-        questionnaire,
-        home,
-        '/search',
-        '/favorites',
-      ];
-
-      final isGoingToPublicPage = publicPages.any(
-        (page) => state.matchedLocation.startsWith(page),
-      );
-
-      // Si l'utilisateur est connecté et essaie d'aller sur login/signup
+      // Si l'utilisateur est connecté et essaie d'aller sur une page d'auth (login/signup)
       if (isAuthenticated && isGoingToAuth) {
+        final currentUser = supabase.currentUser;
+        if (currentUser != null) {
+          final authRepo = AuthRepository();
+          final userProfile = await authRepo.getCurrentUser();
+          if (userProfile == null) {
+            print(
+              '⚠️ Session Supabase active mais aucun profil dans la table users. Suspension de la redirection auto.',
+            );
+            return null;
+          }
+        }
+
         print(
-          '🔄 Utilisateur déjà connecté, redirection vers festival-selection',
+          '🔄 Utilisateur connecté avec profil, redirection vers festival-selection',
         );
         return festivalSelection;
       }
 
-      // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-      if (!isAuthenticated && !isGoingToPublicPage) {
+      // Si l'utilisateur n'est pas connecté et n'est pas sur une page d'auth
+      if (!isAuthenticated && !isGoingToAuth) {
         print('⚠️ Utilisateur non connecté, redirection vers login');
         return login;
       }
@@ -92,6 +93,14 @@ class AppRouter {
         path: forgotPassword,
         name: 'forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: emailConfirmation,
+        name: 'email-confirmation',
+        builder: (context, state) {
+          final email = state.extra as String? ?? '';
+          return EmailConfirmationPage(email: email);
+        },
       ),
       GoRoute(
         path: festivalSelection,

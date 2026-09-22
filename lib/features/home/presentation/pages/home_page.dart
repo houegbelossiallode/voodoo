@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
+import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/core/widgets/network_error_widget.dart';
 import 'package:vodou/core/widgets/app_logo_widget.dart';
 import 'package:vodou/features/home/presentation/providers/home_provider.dart';
@@ -45,30 +46,116 @@ class HomePage extends ConsumerWidget {
               snap: true,
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Vodun Days',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+              automaticallyImplyLeading: false,
+              title: InkWell(
+                onTap: () {
+                  context.go(AppRouter.festivalSelection);
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Vodun Days',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Ouidah, Bénin',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white),
+                    ],
                   ),
-                  Text(
-                    'Ouidah, Bénin',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                ],
+                ),
               ),
-              actions: const [
-                Padding(
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.festival_outlined),
+                  tooltip: 'Changer de festival',
+                  onPressed: () {
+                    context.go(AppRouter.festivalSelection);
+                  },
+                ),
+                const Padding(
                   padding: EdgeInsets.only(right: 12.0),
                   child: AppLogoWidget(),
                 ),
               ],
+            ),
+
+            // Banner de festival sélectionné avec bouton "Changer de festival"
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.festival, color: AppColors.primary, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Festival Vodun Days',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            'Ouidah, Bénin',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        context.go(AppRouter.festivalSelection);
+                      },
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: const Text(
+                        'Changer',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        backgroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: const BorderSide(color: AppColors.primary),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             // Search Bar intégrée avec filtres
@@ -151,19 +238,16 @@ class HomePage extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      filters.hasFilters
-                          ? 'Résultats de recherche (${filters.activeFiltersCount} filtre${filters.activeFiltersCount > 1 ? 's' : ''})'
-                          : 'Logements recommandés',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        filters.hasFilters
+                            ? 'Résultats de recherche (${filters.activeFiltersCount} filtre${filters.activeFiltersCount > 1 ? 's' : ''})'
+                            : 'Logements recommandés',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    if (!filters.hasFilters)
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text('Voir tout'),
-                      ),
                   ],
                 ),
               ),

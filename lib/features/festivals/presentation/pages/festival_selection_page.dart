@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
@@ -13,66 +14,116 @@ class FestivalSelectionPage extends ConsumerWidget {
 
   const FestivalSelectionPage({super.key, this.isFirstTime = false});
 
+  Future<bool> _showExitConfirmationDialog(BuildContext context) async {
+    final shouldQuit = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Quitter l\'application'),
+        content: const Text('Voulez-vous vraiment quitter Vodoo Host ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Quitter'),
+          ),
+        ],
+      ),
+    );
+    return shouldQuit ?? false;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final festivals = Festival.getFestivals();
 
     print('🎪 FestivalSelectionPage - isFirstTime (paramètre): $isFirstTime');
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.primary.withOpacity(0.1), Colors.white],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldQuit = await _showExitConfirmationDialog(context);
+        if (shouldQuit && context.mounted) {
+          await SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.primary.withOpacity(0.1), Colors.white],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                // Titre
-                Text(
-                  isFirstTime ? 'Bienvenue !' : 'Choisissez votre festival',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+                        onPressed: () async {
+                          final shouldQuit = await _showExitConfirmationDialog(context);
+                          if (shouldQuit && context.mounted) {
+                            await SystemNavigator.pop();
+                          }
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  // Titre
+                  Text(
+                    isFirstTime ? 'Bienvenue !' : 'Choisissez votre festival',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  isFirstTime
-                      ? 'Sélectionnez le festival qui vous intéresse'
-                      : 'Quel festival souhaitez-vous explorer ?',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 8),
+                  Text(
+                    isFirstTime
+                        ? 'Sélectionnez le festival qui vous intéresse'
+                        : 'Quel festival souhaitez-vous explorer ?',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 60),
-                // Liste des festivals
-                Expanded(
-                  child: ListView.builder(
+                  const SizedBox(height: 24),
+                  // Liste des festivals
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: festivals.length,
                     itemBuilder: (context, index) {
                       final festival = festivals[index];
                       return _buildFestivalCard(context, ref, festival);
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFestivalCard(
     BuildContext context,
@@ -87,8 +138,8 @@ class FestivalSelectionPage extends ConsumerWidget {
           children: [
             // Image en cercle
             Container(
-              width: 200,
-              height: 200,
+              width: 160,
+              height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
@@ -180,39 +231,37 @@ class FestivalSelectionPage extends ConsumerWidget {
       if (user != null && user.role?.toLowerCase() == 'visiteur') {
         try {
           print('   🔍 Vérification des préférences utilisateur...');
-          final hasCompleted = await ref.read(
-            hasCompletedQuestionnaireProvider.future,
-          );
+          final asyncState = ref.read(hasCompletedQuestionnaireProvider);
+          final bool hasCompleted = asyncState.value ??
+              await ref.read(hasCompletedQuestionnaireProvider.future);
 
           print('   📊 hasCompleted = $hasCompleted');
 
-          if (!hasCompleted) {
-            // Pas de préférences → aller au questionnaire
-            print(
-              '   📋 Aucune préférence → Redirection vers le questionnaire',
-            );
-            if (context.mounted) {
-              context.go(AppRouter.questionnaire, extra: true);
-            }
-          } else {
-            // Préférences existantes → aller à la page d'accueil
-            print('   🏠 Préférences existantes → Redirection vers Vodoo Host');
-            if (context.mounted) {
-              context.go(AppRouter.home);
+          if (context.mounted) {
+            if (!hasCompleted) {
+              // Pas de préférences → aller au questionnaire
+              print(
+                '   📋 Aucune préférence → Redirection vers le questionnaire',
+              );
+              context.push(AppRouter.questionnaire, extra: true);
+            } else {
+              // Préférences existantes → aller à la page d'accueil
+              print('   🏠 Préférences existantes → Redirection vers Vodoo Host');
+              context.push(AppRouter.home);
             }
           }
         } catch (e) {
           print('   ⚠️ Erreur vérification préférences: $e');
           // En cas d'erreur, rediriger vers le questionnaire par sécurité
           if (context.mounted) {
-            context.go(AppRouter.questionnaire, extra: true);
+            context.push(AppRouter.questionnaire, extra: true);
           }
         }
       } else {
         // Non visiteur → aller directement à la page d'accueil
         print('   🏠 Non visiteur → Redirection vers Vodoo Host');
         if (context.mounted) {
-          context.go(AppRouter.home);
+          context.push(AppRouter.home);
         }
       }
     } else {

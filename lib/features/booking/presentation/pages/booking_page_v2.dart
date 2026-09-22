@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
@@ -10,6 +11,7 @@ import 'package:vodou/features/projet/domain/models/projet.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:vodou/features/booking/presentation/widgets/availability_calendar_widget.dart';
 
 class BookingPageV2 extends ConsumerStatefulWidget {
   final Logement logement;
@@ -80,6 +82,26 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
 
             // Dates du séjour
             _buildSectionTitle('Dates du séjour'),
+            const SizedBox(height: 16),
+            AvailabilityCalendarWidget(
+              logementId: widget.logement.id,
+              onDateSelected: (date) {
+                setState(() {
+                  if (_checkIn == null || (_checkIn != null && _checkOut != null)) {
+                    _checkIn = date;
+                    _checkOut = null;
+                  } else if (_checkIn != null && date.isAfter(_checkIn!)) {
+                    _checkOut = date;
+                  } else {
+                    _checkIn = date;
+                    _checkOut = null;
+                  }
+                });
+                if (_checkIn != null && _checkOut != null) {
+                  _checkAvailability();
+                }
+              },
+            ),
             const SizedBox(height: 16),
             _buildDatesSelection(),
 
@@ -191,11 +213,14 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: AppColors.primary,
                     ),
-                    child: Text(
-                      'Confirmer et payer ${_totalAmount.toStringAsFixed(0)} XOF',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Confirmer et payer ${_totalAmount.toStringAsFixed(0)} XOF',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -216,25 +241,12 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: widget.logement.firstPhotoUrl != null
-                  ? Image.network(
-                      widget.logement.firstPhotoUrl!,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 80,
-                        height: 80,
-                        color: AppColors.greyLight,
-                        child: const Icon(Icons.image, color: AppColors.grey),
-                      ),
-                    )
-                  : Container(
-                      width: 80,
-                      height: 80,
-                      color: AppColors.greyLight,
-                      child: const Icon(Icons.image, color: AppColors.grey),
-                    ),
+              child: AppImage(
+                url: widget.logement.firstPhotoUrl,
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -473,14 +485,18 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
-            color: isContribution ? AppColors.secondary : null,
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
+              color: isContribution ? AppColors.secondary : null,
+            ),
           ),
         ),
+        const SizedBox(width: 12),
         Text(
           '${amount.toStringAsFixed(0)} XOF',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -495,11 +511,87 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
   }
 
   Future<void> _selectDate(bool isCheckIn) async {
+    // Charger la liste stricte des dates disponibles depuis la base de données
+    final availableDates = await ref
+        .read(reservationRepositoryProvider)
+        .getAvailableDates(widget.logement.id);
+
+    if (!mounted) return;
+
+    // Si aucune date disponible n'existe en BDD
+    if (availableDates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Aucune date disponible pour ce logement pour le moment.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    bool isDateAvailable(DateTime day) {
+      final normalizedDay = DateTime(day.year, day.month, day.day);
+      return availableDates.any((avail) =>
+          avail.year == normalizedDay.year &&
+          avail.month == normalizedDay.month &&
+          avail.day == normalizedDay.day);
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final minDate = isCheckIn
+        ? today
+        : (_checkIn != null
+            ? DateTime(_checkIn!.year, _checkIn!.month, _checkIn!.day)
+                .add(const Duration(days: 1))
+            : today);
+
+    // Filtrer les dates disponibles qui respectent minDate
+    final validAvailableDates = availableDates.where((d) {
+      final norm = DateTime(d.year, d.month, d.day);
+      return !norm.isBefore(minDate);
+    }).toList();
+
+    validAvailableDates.sort((a, b) => a.compareTo(b));
+
+    if (validAvailableDates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isCheckIn
+                ? '⚠️ Aucune date disponible pour ce logement.'
+                : '⚠️ Aucune date de départ disponible après la date d\'arrivée sélectionnée.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Choisir une date initiale valide satisfaisant le predicate
+    DateTime initialCandidate = isCheckIn
+        ? (_checkIn ?? validAvailableDates.first)
+        : (_checkOut ?? validAvailableDates.first);
+
+    final normCandidate = DateTime(
+        initialCandidate.year, initialCandidate.month, initialCandidate.day);
+
+    if (!isDateAvailable(normCandidate) || normCandidate.isBefore(minDate)) {
+      initialCandidate = validAvailableDates.first;
+    }
+
+    final maxAvailableDate = validAvailableDates.last;
+    final lastPickerDate =
+        maxAvailableDate.isAfter(today.add(const Duration(days: 730)))
+            ? maxAvailableDate
+            : today.add(const Duration(days: 730));
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: initialCandidate,
+      firstDate: today,
+      lastDate: lastPickerDate,
+      selectableDayPredicate: (DateTime day) => isDateAvailable(day),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -613,6 +705,7 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
             firstName: currentUser.prenom,
             lastName: currentUser.nom,
             email: currentUser.email,
+            phone: currentUser.telephone,
             projetId: _selectedProject != null
                 ? int.tryParse(_selectedProject!.id)
                 : null,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vodou/core/constants/app_colors.dart';
+import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
 
 /// Section des divinités
@@ -41,7 +42,10 @@ class DivinitesSection extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
+      child: InkWell(
+        onTap: () => _showDiviniteDetailsDialog(context, divinite),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,24 +58,18 @@ class DivinitesSection extends StatelessWidget {
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: divinite.image != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        divinite.image!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.auto_awesome,
-                          color: AppColors.primary,
-                          size: 32,
-                        ),
-                      ),
-                    )
-                  : const Icon(
-                      Icons.auto_awesome,
-                      color: AppColors.primary,
-                      size: 32,
-                    ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AppImage(
+                  url: divinite.image,
+                  fit: BoxFit.cover,
+                  errorWidget: const Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.primary,
+                    size: 32,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             // Informations
@@ -104,6 +102,63 @@ class DivinitesSection extends StatelessWidget {
             const Icon(Icons.chevron_right, color: AppColors.grey),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+  void _showDiviniteDetailsDialog(BuildContext context, Divinite divinite) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                divinite.nom,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (divinite.image != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: AppImage(
+                    url: divinite.image,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              const Text(
+                'Description et histoire',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                divinite.description ?? 'Aucune description disponible pour cette divinité.',
+                style: const TextStyle(fontSize: 14, height: 1.5),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+        ],
       ),
     );
   }

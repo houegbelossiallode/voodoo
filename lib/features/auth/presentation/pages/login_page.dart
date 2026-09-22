@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/router/app_router.dart';
+import 'package:vodou/core/services/supabase_service.dart';
+import 'package:vodou/core/utils/auth_error_formatter.dart';
+import 'package:vodou/features/auth/domain/models/role.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/features/auth/presentation/providers/first_time_visitor_provider.dart';
+import 'package:vodou/features/auth/presentation/widgets/google_role_selection_dialog.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
 
 /// Page de connexion simple avec email et mot de passe
@@ -23,6 +28,86 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPendingNewOAuthUser();
+    });
+  }
+
+  /// Vérifie si un utilisateur Supabase Auth est déjà connecté mais sans profil local
+  Future<void> _checkPendingNewOAuthUser() async {
+    final supabaseUser = SupabaseService.instance.currentUser;
+    if (supabaseUser != null) {
+      final userProfile =
+          await ref.read(authRepositoryProvider).getCurrentUser();
+      if (userProfile == null && mounted) {
+        print(
+          '🔍 Auth active sans profil local, affichage du dialogue de rôle...',
+        );
+        final String email = supabaseUser.email ?? '';
+        final String metaGivenName =
+            (supabaseUser.userMetadata?['given_name'] as String? ?? '').trim();
+        final String metaFamilyName =
+            (supabaseUser.userMetadata?['family_name'] as String? ?? '').trim();
+        final String fullName = (supabaseUser.userMetadata?['full_name'] ??
+                supabaseUser.userMetadata?['name'] ??
+                '')
+            .toString()
+            .trim();
+
+        String prenom = metaGivenName;
+        String nom = metaFamilyName;
+
+        if (prenom.isEmpty || nom.isEmpty) {
+          if (fullName.isNotEmpty) {
+            final List<String> nameParts = fullName.split(RegExp(r'\s+'));
+            if (prenom.isEmpty && nameParts.isNotEmpty) {
+              prenom = nameParts.first;
+            }
+            if (nom.isEmpty) {
+              nom = nameParts.length > 1
+                  ? nameParts.sublist(1).join(' ')
+                  : prenom;
+            }
+          }
+        }
+
+        if (prenom.isEmpty) prenom = 'Utilisateur';
+        if (nom.isEmpty) nom = prenom;
+
+        final String? photo =
+            supabaseUser.userMetadata?['avatar_url'] ??
+            supabaseUser.userMetadata?['picture'];
+
+        final Role? selectedRole = await GoogleRoleSelectionDialog.show(
+          context,
+          userName: prenom.isNotEmpty ? prenom : nom,
+        );
+
+        if (selectedRole != null && mounted) {
+          if (selectedRole.libelle.toLowerCase() == 'visiteur') {
+            ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
+          }
+          await ref.read(currentUserProvider.notifier).completeOAuthProfile(
+                supabaseId: supabaseUser.id,
+                email: email,
+                nom: nom,
+                prenom: prenom,
+                roleId: selectedRole.id,
+                photo: photo,
+              );
+          if (mounted) {
+            _handleSuccessfulLogin();
+          }
+        } else if (mounted) {
+          await ref.read(currentUserProvider.notifier).signOut();
+        }
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -33,28 +118,64 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    print('🔐 Tentative de connexion avec: ${_emailController.text.trim()}');
 
     try {
-      await ref
-          .read(currentUserProvider.notifier)
-          .signInWithEmail(
+      print('📝 Début de la connexion...');
+      await ref.read(currentUserProvider.notifier).signInWithEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
 
-      print('✅ Connexion réussie !');
+      print('✅ Connexion réussie!');
 
       if (mounted) {
-        _handleSuccessfulLogin();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Connexion réussie ! Bienvenue.',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green[700],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        await _handleSuccessfulLogin();
       }
     } catch (e) {
       print('❌ Erreur de connexion: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur de connexion: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AuthErrorFormatter.format(e),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -69,17 +190,79 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(currentUserProvider.notifier).signInWithGoogle();
-      if (mounted) {
-        _handleSuccessfulLogin();
+      final result =
+          await ref.read(currentUserProvider.notifier).signInWithGoogle();
+
+      if (result == null) {
+        // Annulé par l'utilisateur au niveau Google
+        return;
+      }
+
+      if (result.isNewUser) {
+        if (mounted) {
+          // Arrêter le spinner de chargement pour afficher clairement le dialogue
+          setState(() => _isLoading = false);
+
+          // Afficher le dialogue de choix de rôle pour le premier profil Google
+          final Role? selectedRole = await GoogleRoleSelectionDialog.show(
+            context,
+            userName: result.prenom ?? result.nom ?? '',
+          );
+
+          if (selectedRole != null && mounted) {
+            setState(() => _isLoading = true);
+
+            // Marquer comme visiteur si le rôle est visiteur (pour le questionnaire)
+            if (selectedRole.libelle.toLowerCase() == 'visiteur') {
+              ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
+            }
+
+            // Enregistrer le profil complet dans Supabase
+            await ref.read(currentUserProvider.notifier).completeOAuthProfile(
+                  supabaseId: result.supabaseId!,
+                  email: result.email!,
+                  nom: result.nom!,
+                  prenom: result.prenom!,
+                  roleId: selectedRole.id,
+                  photo: result.photo,
+                );
+
+            if (mounted) {
+              await _handleSuccessfulLogin();
+            }
+          } else if (mounted) {
+            // Si l'utilisateur ferme/annule le dialogue de rôle
+            await ref.read(currentUserProvider.notifier).signOut();
+          }
+        }
+      } else {
+        // Utilisateur existant : redirection directe sans dialogue de rôle
+        if (mounted) {
+          await _handleSuccessfulLogin();
+        }
       }
     } catch (e) {
       print('❌ Erreur Google: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur Google: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AuthErrorFormatter.format(e),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -91,13 +274,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _handleSuccessfulLogin() async {
-    // Récupérer l'utilisateur connecté
+    if (!mounted) return;
+
     final userAsync = ref.read(currentUserProvider);
     final user = userAsync.value;
 
     if (user == null) {
       print('⚠️ Utilisateur non trouvé après connexion');
-      context.go(AppRouter.festivalSelection, extra: true);
+      if (mounted) {
+        context.go(AppRouter.festivalSelection, extra: true);
+      }
       return;
     }
 
@@ -115,6 +301,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
         print('📊 hasCompleted = $hasCompleted');
 
+        if (!mounted) return;
+
         if (!hasCompleted) {
           print('🎉 Redirection vers festival-selection (isFirstTime=true)');
           context.go(AppRouter.festivalSelection, extra: true);
@@ -124,17 +312,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
       } catch (e) {
         print('⚠️ Erreur vérification préférences: $e');
-        print(
-          '🎉 Redirection vers festival-selection par défaut (isFirstTime=true)',
-        );
-        context.go(AppRouter.festivalSelection, extra: true);
+        if (mounted) {
+          print(
+            '🎉 Redirection vers festival-selection par défaut (isFirstTime=true)',
+          );
+          context.go(AppRouter.festivalSelection, extra: true);
+        }
       }
     } else {
       // Hôtes, administrateurs, etc. vont directement à la sélection de festival
-      print(
-        '🎉 Redirection vers festival-selection ($userRole, isFirstTime=false)',
-      );
-      context.go(AppRouter.festivalSelection, extra: false);
+      if (mounted) {
+        print(
+          '🎉 Redirection vers festival-selection ($userRole, isFirstTime=false)',
+        );
+        context.go(AppRouter.festivalSelection, extra: false);
+      }
     }
   }
 
@@ -196,11 +388,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre email';
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Veuillez saisir votre adresse email';
                       }
                       if (!value.contains('@') || !value.contains('.')) {
-                        return 'Email invalide';
+                        return 'Veuillez entrer une adresse email valide (ex: nom@domaine.com)';
                       }
                       return null;
                     },
@@ -235,7 +427,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     onFieldSubmitted: (_) => _signIn(),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre mot de passe';
+                        return 'Veuillez saisir votre mot de passe';
                       }
                       if (value.length < 6) {
                         return 'Le mot de passe doit contenir au moins 6 caractères';

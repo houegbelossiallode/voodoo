@@ -11,6 +11,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final PreferredSizeWidget? bottom;
   final bool showLogo;
+  final bool showBackButton;
 
   const CustomAppBar({
     super.key,
@@ -21,6 +22,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = true,
     this.bottom,
     this.showLogo = true,
+    this.showBackButton = true,
   }) : assert(
          title != null || titleWidget != null,
          'Either title or titleWidget must be provided',
@@ -52,7 +54,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ]
           : actions,
-      leading: leading,
+      automaticallyImplyLeading: showBackButton,
+      leading: leading ??
+          (showBackButton && Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                )
+              : null),
       bottom: bottom,
     );
   }
