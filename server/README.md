@@ -1,4 +1,4 @@
-Handler de callback Supabase
+<!-- Handler de callback Supabase
 
 Fichiers ajoutés :
 - `server/src/routes/supabaseCallback.js` : route Express gérant `/hoost/auth/supabase/callback`
@@ -43,4 +43,4 @@ Notes de sécurité :
 Remarques :
 - Le trigger SQL fourni dans `supabase_triggers.sql` crée automatiquement le profil `public.users` lors de la confirmation; la route de callback n'a donc pas besoin de créer le profil.
 
-Besoin d'aide pour déployer ce handler sur Render ou pour ajouter une page frontend "E‑mail confirmé" ?
+Besoin d'aide pour déployer ce handler sur Render ou pour ajouter une page frontend "E‑mail confirmé" ? -->
