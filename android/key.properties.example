@@ -1,0 +1,22 @@
+# Signature de release Android — cf. AUDIT_SECURITE.md, VUL-05
+#
+# 1. Générer le keystore (une seule fois, à conserver précieusement et hors du dépôt) :
+#
+#    keytool -genkey -v -keystore ~/vodoohost-release.jks \
+#      -keyalg RSA -keysize 2048 -validity 10000 -alias vodoohost
+#
+# 2. Copier ce fichier en android/key.properties et renseigner les valeurs.
+#    android/key.properties est gitignoré.
+#
+# 3. Déclarer le SHA-1 du keystore de release dans Google Cloud Console (OAuth)
+#    et régénérer android/app/google-services.json :
+#
+#    keytool -list -v -keystore ~/vodoohost-release.jks -alias vodoohost
+#
+# ⚠️ Sans ce fichier, le build release retombe sur la clé de DEBUG (publique)
+#    et ne doit pas être distribué.
+
+storeFile=/chemin/absolu/vers/vodoohost-release.jks
+storePassword=CHANGEME
+keyAlias=vodoohost
+keyPassword=CHANGEME

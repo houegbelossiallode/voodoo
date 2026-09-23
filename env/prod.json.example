@@ -1,0 +1,9 @@
+{
+  "_comment": "Copiez ce fichier en env/prod.json et renseignez vos valeurs. env/*.json est gitignoré. En CI, générez ce fichier depuis un secret.",
+  "SUPABASE_URL": "https://YOUR_PROD_PROJECT.supabase.co",
+  "SUPABASE_ANON_KEY": "YOUR_PROD_SUPABASE_ANON_KEY",
+  "KKIAPAY_PUBLIC_KEY": "YOUR_KKIAPAY_LIVE_PUBLIC_KEY",
+  "GOOGLE_WEB_CLIENT_ID": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
+  "GOOGLE_ANDROID_CLIENT_ID": "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+  "ENV": "prod"
+}

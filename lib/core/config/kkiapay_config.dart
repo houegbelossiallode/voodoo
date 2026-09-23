@@ -1,19 +1,23 @@
-/// Configuration KKiaPay pour les paiements
+import 'package:vodou/core/config/env.dart';
+
+/// Configuration KKiaPay pour les paiements.
+///
+/// ⚠️ Seule la clé **publique** figure côté application. La clé privée, qui
+/// permet de vérifier le statut réel d'une transaction, doit rester côté
+/// serveur (Edge Function Supabase) — cf. `AUDIT_SECURITE.md`, VUL-02.
 class KKiaPayConfig {
   // -----------------------------
-  // 🔑 Clés KKiaPay (UNIQUEMENT PUBLIC KEY)
+  // 🔑 Clé KKiaPay (UNIQUEMENT PUBLIC KEY)
   // -----------------------------
 
-  /// ⚠️ Clé à utiliser dans l'app Flutter
-  static const String publicKeySandbox = '2fd08370652e11efbf02478c5adba4b8';
-  static const String publicKeyLive =
-      '2fd08370652e11efbf02478c5adba4b8';
+  /// Clé publique, injectée au build via `--dart-define-from-file`.
+  static String get publicKey => Env.kkiapayPublicKey;
 
-  /// true = production / false = sandbox
-  static const bool isLive = false;
-
-  /// Retourne automatiquement la bonne clé selon le mode
-  static String get publicKey => isLive ? publicKeyLive : publicKeySandbox;
+  /// `true` en production, `false` (sandbox) partout ailleurs.
+  ///
+  /// Dérivé de l'environnement de build : plus de constante à basculer
+  /// manuellement avant une release.
+  static bool get isLive => Env.kkiapayIsLive;
 
   // -----------------------------
   // 🔧 Configuration générale

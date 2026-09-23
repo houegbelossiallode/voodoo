@@ -1,3 +1,22 @@
+# ==============================================================================
+# SECRETS & CONFIGURATION — NE JAMAIS COMMITER (cf. AUDIT_SECURITE.md, VUL-01)
+# ==============================================================================
+.env
+.env.*
+!.env.example
+
+# Configuration par --dart-define-from-file
+env/*.json
+!env/*.json.example
+
+# Signature Android (cf. VUL-05)
+android/key.properties
+*.jks
+*.keystore
+
+# Symboles de debug issus de --split-debug-info
+build/symbols/
+
 # Miscellaneous
 *.class
 *.log
