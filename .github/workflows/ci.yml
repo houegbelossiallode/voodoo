@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    name: Format, analyse et tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Dépendances
+        run: flutter pub get
+
+      - name: Formatage
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyse statique
+        run: flutter analyze --fatal-infos
+
+      - name: Tests unitaires
+        run: flutter test --coverage
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/lcov.info
+
+  secrets:
+    name: Détection de secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Empêche la réintroduction d'un secret dans le dépôt (cf. VUL-01).
+      - name: Recherche de secrets en dur
+        run: |
+          set -e
+          echo "Recherche d'identifiants de base de données…"
+          if grep -rnE "dbPassword|dbUsername|DB_PASSWORD *= *[^YOUR]" \
+               --include="*.dart" --include="*.yaml" --include="*.json" \
+               --exclude="*.example" . ; then
+            echo "::error::Identifiant de base de données détecté dans le code."
+            exit 1
+          fi
+
+          echo "Recherche de clés privées KKiaPay / service_role…"
+          if grep -rnE "service_role|sk_live_|KKIAPAY_PRIVATE|KKIAPAY_SECRET" \
+               --include="*.dart" --include="*.json" \
+               --exclude="*.example" lib/ ; then
+            echo "::error::Clé privée détectée dans le code client."
+            exit 1
+          fi
+
+          echo "Recherche d'appels print()…"
+          if grep -rnP "(?<![\w.])print\(" --include="*.dart" lib/ ; then
+            echo "::error::print() interdit en production — utilisez AppLogger."
+            exit 1
+          fi
+
+          echo "Aucun secret détecté."
+
+  build:
+    name: Build Android
+    needs: [quality, secrets]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # La configuration provient d'un secret GitHub, jamais du dépôt.
+      - name: Configuration d'environnement
+        run: |
+          mkdir -p env
+          echo '${{ secrets.ENV_STAGING_JSON }}' > env/staging.json
+
+      - name: Build App Bundle
+        run: |
+          flutter build appbundle --release \
+            --dart-define-from-file=env/staging.json \
+            --obfuscate --split-debug-info=build/symbols
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debug-symbols
+          path: build/symbols
