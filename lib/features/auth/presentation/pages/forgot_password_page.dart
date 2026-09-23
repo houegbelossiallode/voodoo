@@ -7,7 +7,7 @@ import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 
 /// Page de réinitialisation du mot de passe
 class ForgotPasswordPage extends ConsumerStatefulWidget {
-  const ForgotPasswordPage({Key? key}) : super(key: key);
+  const ForgotPasswordPage({super.key});
 
   @override
   ConsumerState<ForgotPasswordPage> createState() => _ForgotPasswordPageState();

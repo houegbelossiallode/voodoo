@@ -8,10 +8,7 @@ import 'package:vodou/features/auth/presentation/providers/role_provider.dart';
 class GoogleRoleSelectionDialog extends ConsumerStatefulWidget {
   final String userName;
 
-  const GoogleRoleSelectionDialog({
-    Key? key,
-    required this.userName,
-  }) : super(key: key);
+  const GoogleRoleSelectionDialog({super.key, required this.userName});
 
   static Future<Role?> show(BuildContext context, {required String userName}) {
     return showDialog<Role>(
@@ -63,9 +60,7 @@ class _GoogleRoleSelectionDialogState
     final rolesAsync = ref.watch(rolesProvider);
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       elevation: 8,
       child: Padding(
@@ -80,7 +75,7 @@ class _GoogleRoleSelectionDialogState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -98,7 +93,8 @@ class _GoogleRoleSelectionDialogState
                         widget.userName.isNotEmpty
                             ? 'Bienvenue ${widget.userName} !'
                             : 'Bienvenue sur Vodoo Host !',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
                             ),
@@ -107,8 +103,8 @@ class _GoogleRoleSelectionDialogState
                       Text(
                         'Choisissez votre rôle pour continuer :',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -152,7 +148,9 @@ class _GoogleRoleSelectionDialogState
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? AppColors.primary.withOpacity(0.06)
+                                      ? AppColors.primary.withValues(
+                                          alpha: 0.06,
+                                        )
                                       : Colors.grey[50],
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
@@ -198,7 +196,9 @@ class _GoogleRoleSelectionDialogState
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            _getDescriptionForRole(role.libelle),
+                                            _getDescriptionForRole(
+                                              role.libelle,
+                                            ),
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: AppColors.textSecondary,

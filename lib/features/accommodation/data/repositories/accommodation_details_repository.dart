@@ -5,6 +5,8 @@ import 'package:vodou/features/home/domain/models/divinite.dart';
 import 'package:vodou/features/accommodation/domain/models/avis.dart';
 import 'package:vodou/features/accommodation/domain/models/host_info.dart';
 import 'package:vodou/features/accommodation/domain/models/equipement.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les détails complets d'un logement
 class AccommodationDetailsRepository {
@@ -15,7 +17,7 @@ class AccommodationDetailsRepository {
   /// Récupère les détails complets d'un logement avec toutes ses relations
   Future<Logement> getLogementDetails(int logementId) async {
     try {
-      print('🔍 Récupération des détails du logement $logementId');
+      AppLogger.d('🔍 Récupération des détails du logement $logementId');
 
       final response = await _supabaseService.client
           .from(SupabaseConfig.logementsTable)
@@ -38,12 +40,14 @@ class AccommodationDetailsRepository {
           .eq('id', logementId)
           .single();
 
-      print('✅ Détails récupérés');
+      AppLogger.d('✅ Détails récupérés');
       return Logement.fromJson(response);
     } catch (e) {
-      print('❌ Erreur lors de la récupération des détails: $e');
-      throw Exception(
-        'Erreur lors de la récupération des détails du logement: $e',
+      AppLogger.e('❌ Erreur lors de la récupération des détails: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des détails du logement',
       );
     }
   }
@@ -69,10 +73,10 @@ class AccommodationDetailsRepository {
           .whereType<Divinite>()
           .toList();
 
-      print('✅ ${divinites.length} divinités récupérées');
+      AppLogger.d('✅ ${divinites.length} divinités récupérées');
       return divinites;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des divinités: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des divinités: $e');
       return [];
     }
   }
@@ -100,10 +104,10 @@ class AccommodationDetailsRepository {
           .whereType<Equipement>()
           .toList();
 
-      print('✅ ${equipements.length} équipements récupérés');
+      AppLogger.d('✅ ${equipements.length} équipements récupérés');
       return equipements;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des équipements: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des équipements: $e');
       return [];
     }
   }
@@ -129,7 +133,7 @@ class AccommodationDetailsRepository {
                 .eq('id', userId)
                 .single();
           } catch (e) {
-            print('⚠️ Erreur récupération user $userId: $e');
+            AppLogger.w('⚠️ Erreur récupération user $userId: $e');
           }
 
           return Avis.fromJson({
@@ -143,10 +147,10 @@ class AccommodationDetailsRepository {
         }),
       );
 
-      print('✅ ${avisList.length} avis récupérés');
+      AppLogger.d('✅ ${avisList.length} avis récupérés');
       return avisList;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des avis: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des avis: $e');
       return [];
     }
   }
@@ -181,7 +185,7 @@ class AccommodationDetailsRepository {
         repartitionNotes: repartition,
       );
     } catch (e) {
-      print('❌ Erreur lors du calcul des statistiques: $e');
+      AppLogger.e('❌ Erreur lors du calcul des statistiques: $e');
       return AvisStats(moyenneNote: 0.0, totalAvis: 0, repartitionNotes: {});
     }
   }
@@ -231,10 +235,10 @@ class AccommodationDetailsRepository {
         'nombre_avis': nombreAvis,
       });
 
-      print('✅ Informations hôte récupérées');
+      AppLogger.d('✅ Informations hôte récupérées');
       return hostInfo;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des infos hôte: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des infos hôte: $e');
       throw Exception(
         'Erreur lors de la récupération des informations de l\'hôte: $e',
       );
@@ -254,7 +258,7 @@ class AccommodationDetailsRepository {
 
       return response;
     } catch (e) {
-      print('❌ Erreur lors de la récupération du quartier: $e');
+      AppLogger.e('❌ Erreur lors de la récupération du quartier: $e');
       return null;
     }
   }
@@ -267,7 +271,7 @@ class AccommodationDetailsRepository {
     required String commentaire,
   }) async {
     try {
-      print('📝 Soumission d\'un avis pour le logement $logementId');
+      AppLogger.d('📝 Soumission d\'un avis pour le logement $logementId');
 
       await _supabaseService.client.from('avis').insert({
         'logement_id': logementId,
@@ -279,10 +283,10 @@ class AccommodationDetailsRepository {
         'updated_at': DateTime.now().toIso8601String(),
       });
 
-      print('✅ Avis soumis avec succès');
+      AppLogger.d('✅ Avis soumis avec succès');
     } catch (e) {
-      print('❌ Erreur lors de la soumission de l\'avis: $e');
-      throw Exception('Erreur lors de la soumission de l\'avis: $e');
+      AppLogger.e('❌ Erreur lors de la soumission de l\'avis: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la soumission de l\'avis');
     }
   }
 }

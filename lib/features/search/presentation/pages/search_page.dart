@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/core/constants/app_strings.dart';
@@ -79,7 +78,7 @@ class _SearchPageState extends State<SearchPage> {
                       Icon(
                         Icons.search,
                         size: 80,
-                        color: AppColors.grey.withOpacity(0.5),
+                        color: AppColors.grey.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(

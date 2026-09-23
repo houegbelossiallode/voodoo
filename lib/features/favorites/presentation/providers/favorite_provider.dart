@@ -37,24 +37,23 @@ final favoriteLogementsProvider = FutureProvider<List<Logement>>((ref) async {
 });
 
 /// Provider pour récupérer les logements d'une liste spécifique
-final favoriteListLogementsProvider =
-    FutureProvider.family<List<Logement>, int>((ref, favoriteId) async {
+final favoriteListLogementsProvider = FutureProvider.autoDispose
+    .family<List<Logement>, int>((ref, favoriteId) async {
       final repository = ref.watch(favoriteRepositoryProvider);
       return repository.getLogementsFromFavoriteList(favoriteId);
     });
 
 /// Provider pour vérifier si un logement est dans au moins une liste de favoris
-final isLogementFavoriteProvider = FutureProvider.family<bool, int>((
-  ref,
-  logementId,
-) async {
-  final userAsync = ref.watch(currentUserProvider);
-  final user = userAsync.value;
-  if (user == null) return false;
+final isLogementFavoriteProvider = FutureProvider.autoDispose.family<bool, int>(
+  (ref, logementId) async {
+    final userAsync = ref.watch(currentUserProvider);
+    final user = userAsync.value;
+    if (user == null) return false;
 
-  final repository = ref.watch(favoriteRepositoryProvider);
-  return repository.isLogementInAnyFavorite(user.id, logementId);
-});
+    final repository = ref.watch(favoriteRepositoryProvider);
+    return repository.isLogementInAnyFavorite(user.id, logementId);
+  },
+);
 
 /// StateNotifier pour gérer l'état des favoris (IDs des logements en favoris)
 class FavoriteNotifier extends StateNotifier<Set<int>> {

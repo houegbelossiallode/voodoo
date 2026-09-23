@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/constants/app_colors.dart';
-import 'package:vodou/core/constants/app_strings.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/core/widgets/network_error_widget.dart';
 import 'package:vodou/core/widgets/app_logo_widget.dart';
@@ -53,7 +52,10 @@ class HomePage extends ConsumerWidget {
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4.0,
+                    horizontal: 4.0,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -62,16 +64,18 @@ class HomePage extends ConsumerWidget {
                         children: [
                           Text(
                             'Vodun Days',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                           ),
                           Text(
                             'Ouidah, Bénin',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
                           ),
                         ],
                       ),
@@ -100,17 +104,24 @@ class HomePage extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.08),
+                  color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.festival, color: AppColors.primary, size: 24),
+                    const Icon(
+                      Icons.festival,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -141,12 +152,18 @@ class HomePage extends ConsumerWidget {
                       icon: const Icon(Icons.swap_horiz, size: 18),
                       label: const Text(
                         'Changer',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         backgroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: const BorderSide(color: AppColors.primary),
@@ -305,11 +322,13 @@ class HomePage extends ConsumerWidget {
   IconData _getIconForDivinite(String libelle) {
     final lowerLibelle = libelle.toLowerCase();
     if (lowerLibelle.contains('sakpata')) return Icons.healing;
-    if (lowerLibelle.contains('mamiwata') || lowerLibelle.contains('mami'))
+    if (lowerLibelle.contains('mamiwata') || lowerLibelle.contains('mami')) {
       return Icons.water;
+    }
     if (lowerLibelle.contains('legba')) return Icons.auto_awesome;
-    if (lowerLibelle.contains('hevioso') || lowerLibelle.contains('xevioso'))
+    if (lowerLibelle.contains('hevioso') || lowerLibelle.contains('xevioso')) {
       return Icons.flash_on;
+    }
     if (lowerLibelle.contains('dan')) return Icons.waves;
     if (lowerLibelle.contains('gu')) return Icons.hardware;
     return Icons.stars;
@@ -352,10 +371,10 @@ class HomePage extends ConsumerWidget {
       child: Container(
         width: 100,
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? color : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.3),
+            color: isSelected ? color : color.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -441,12 +460,12 @@ class HomePage extends ConsumerWidget {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isFavorite
-                              ? AppColors.favorite.withOpacity(0.9)
+                              ? AppColors.favorite.withValues(alpha: 0.9)
                               : AppColors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -543,7 +562,9 @@ class HomePage extends ConsumerWidget {
                         Chip(
                           avatar: const Icon(Icons.photo_library, size: 16),
                           label: Text('${logement.photos.length}'),
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          backgroundColor: AppColors.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           labelStyle: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 12,

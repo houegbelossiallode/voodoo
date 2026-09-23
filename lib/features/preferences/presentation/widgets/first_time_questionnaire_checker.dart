@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Widget qui vérifie si l'utilisateur a complété le questionnaire
 /// et le redirige automatiquement si ce n'est pas le cas
@@ -43,7 +44,7 @@ class _FirstTimeQuestionnaireCheckerState
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) {
         // En cas d'erreur, afficher l'enfant quand même
-        print('⚠️ Erreur vérification questionnaire: $error');
+        AppLogger.w('⚠️ Erreur vérification questionnaire: $error');
         return widget.child;
       },
     );

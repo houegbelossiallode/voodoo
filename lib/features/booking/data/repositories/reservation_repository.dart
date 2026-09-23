@@ -2,12 +2,15 @@ import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/booking/domain/models/reservation.dart';
 import 'package:vodou/features/booking/domain/models/logement_disponibilite.dart';
+import 'package:vodou/features/booking/domain/date_range_rules.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Statuts de disponibilité pour l'affichage du calendrier
 enum DateAvailabilityStatus {
-  disponible,   // Vert
+  disponible, // Vert
   indisponible, // Gris
-  reserver,     // Rouge
+  reserver, // Rouge
 }
 
 /// Repository pour gérer les réservations
@@ -30,7 +33,7 @@ class ReservationRepository {
     int? projetId,
   }) async {
     try {
-      print('📝 Création de la réservation...');
+      AppLogger.d('📝 Création de la réservation...');
 
       // 1. Récupérer le pourcentage de commission de la plateforme
       final constanceResponse = await _supabaseService.client
@@ -43,7 +46,7 @@ class ReservationRepository {
           .toDouble();
       final double commission = montant * (pourcentageCommission / 100);
 
-      print(
+      AppLogger.d(
         '💰 Commission calculée: $commission XOF ($pourcentageCommission%)',
       );
 
@@ -60,7 +63,7 @@ class ReservationRepository {
             (projetResponse['pourcentage_contribution'] as num).toDouble();
         partProjet = montant * (pourcentageContribution / 100);
 
-        print(
+        AppLogger.d(
           '🎯 Contribution projet calculée: $partProjet XOF ($pourcentageContribution%)',
         );
       }
@@ -88,7 +91,7 @@ class ReservationRepository {
           .single();
 
       final int reservationId = reservationResponse['id'] as int;
-      print('✅ Réservation créée avec ID: $reservationId');
+      AppLogger.d('✅ Réservation créée avec ID: $reservationId');
 
       // 4. Enregistrer le revenu de la plateforme
       await _supabaseService.client.from('revenu_plateformes').insert({
@@ -98,7 +101,7 @@ class ReservationRepository {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      print('✅ Revenu plateforme enregistré');
+      AppLogger.d('✅ Revenu plateforme enregistré');
 
       // 5. Si projet communautaire, créer la contribution
       if (projetId != null && partProjet > 0) {
@@ -112,7 +115,7 @@ class ReservationRepository {
               'created_at': DateTime.now().toIso8601String(),
             });
 
-        print('✅ Contribution au projet enregistrée');
+        AppLogger.d('✅ Contribution au projet enregistrée');
       }
 
       // 6. Récupérer l'hôte du logement
@@ -126,7 +129,7 @@ class ReservationRepository {
 
       // 7. Calculer le montant à verser à l'hôte
       final double montantHote = montant - commission - partProjet;
-      print('💵 Montant pour l\'hôte: $montantHote XOF');
+      AppLogger.d('💵 Montant pour l\'hôte: $montantHote XOF');
 
       // 8. Récupérer ou créer le compte de l'hôte
       final compteResponse = await _supabaseService.client
@@ -153,7 +156,7 @@ class ReservationRepository {
             .single();
 
         compteId = newCompteResponse['id'] as int;
-        print('✅ Nouveau compte créé pour l\'hôte');
+        AppLogger.d('✅ Nouveau compte créé pour l\'hôte');
       } else {
         // Mettre à jour le solde existant
         compteId = compteResponse['id'] as int;
@@ -168,7 +171,9 @@ class ReservationRepository {
             })
             .eq('id', compteId);
 
-        print('✅ Solde du compte mis à jour: $soldeActuel → $nouveauSolde XOF');
+        AppLogger.d(
+          '✅ Solde du compte mis à jour: $soldeActuel → $nouveauSolde XOF',
+        );
       }
 
       // 9. Créer la transaction
@@ -179,7 +184,7 @@ class ReservationRepository {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      print('✅ Transaction enregistrée');
+      AppLogger.d('✅ Transaction enregistrée');
 
       // 10. Découper et synchroniser les disponibilités du logement
       await updateDisponibilitesAfterReservation(
@@ -191,8 +196,12 @@ class ReservationRepository {
       // 11. Retourner la réservation créée
       return Reservation.fromJson(reservationResponse);
     } catch (e) {
-      print('❌ Erreur lors de la création de la réservation: $e');
-      throw Exception('Erreur lors de la création de la réservation: $e');
+      AppLogger.e('❌ Erreur lors de la création de la réservation: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la création de la réservation',
+      );
     }
   }
 
@@ -213,7 +222,11 @@ class ReservationRepository {
           .map((json) => Reservation.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des réservations: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des réservations',
+      );
     }
   }
 
@@ -232,7 +245,11 @@ class ReservationRepository {
 
       return Reservation.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération de la réservation: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération de la réservation',
+      );
     }
   }
 
@@ -247,7 +264,11 @@ class ReservationRepository {
           })
           .eq('id', reservationId);
     } catch (e) {
-      throw Exception('Erreur lors de l\'annulation de la réservation: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'l\'annulation de la réservation',
+      );
     }
   }
 
@@ -258,10 +279,12 @@ class ReservationRepository {
     required DateTime dateFin,
   }) async {
     try {
-      print('🔍 Vérification de disponibilité...');
-      print('   Logement ID: $logementId');
-      print('   Date début: ${dateDebut.toIso8601String().split('T')[0]}');
-      print('   Date fin: ${dateFin.toIso8601String().split('T')[0]}');
+      AppLogger.d('🔍 Vérification de disponibilité...');
+      AppLogger.d('   Logement ID: $logementId');
+      AppLogger.d(
+        '   Date début: ${dateDebut.toIso8601String().split('T')[0]}',
+      );
+      AppLogger.d('   Date fin: ${dateFin.toIso8601String().split('T')[0]}');
 
       // 1. Vérifier dans la table logement_disponibilites
       final disponibilitesResponse = await _supabaseService.client
@@ -277,7 +300,9 @@ class ReservationRepository {
           )
           .toList();
 
-      print('📋 ${disponibilites.length} périodes de disponibilité trouvées');
+      AppLogger.d(
+        '📋 ${disponibilites.length} périodes de disponibilité trouvées',
+      );
 
       // Vérifier si les dates demandées sont couvertes par une période disponible
       bool isInAvailablePeriod = false;
@@ -313,7 +338,7 @@ class ReservationRepository {
       }
 
       if (!isInAvailablePeriod) {
-        print('❌ Aucune période de disponibilité ne couvre ces dates');
+        AppLogger.e('❌ Aucune période de disponibilité ne couvre ces dates');
         return false;
       }
 
@@ -325,38 +350,42 @@ class ReservationRepository {
 
       final reservations = reservationsResponse as List;
 
-      final reqDebut = DateTime(dateDebut.year, dateDebut.month, dateDebut.day);
-      final reqFin = DateTime(dateFin.year, dateFin.month, dateFin.day);
-
+      // Logique de chevauchement déléguée à DateRangeRules : fonction pure,
+      // couverte par des tests unitaires (VUL-11).
       final paidReservations = reservations.where((r) {
-        final st = (r['statut'] as String? ?? '').toUpperCase();
-        final isPaid = (st == 'PAYE' || st == 'PAYÉ' || st == 'CONFIRMEE' || st == 'CONFIRMÉE');
-        if (!isPaid) return false;
+        if (!DateRangeRules.estBloquant(r['statut'] as String?)) return false;
 
-        final resDebut = DateTime.parse(r['date_debut'] as String);
-        final resFin = DateTime.parse(r['date_fin'] as String);
-
-        // Deux plages [reqDebut, reqFin] et [resDebut, resFin] se chevauchent si reqDebut < resFin ET reqFin > resDebut
-        return reqDebut.isBefore(resFin) && reqFin.isAfter(resDebut);
+        return DateRangeRules.seChevauchent(
+          debutA: dateDebut,
+          finA: dateFin,
+          debutB: DateTime.parse(r['date_debut'] as String),
+          finB: DateTime.parse(r['date_fin'] as String),
+        );
       }).toList();
 
       if (paidReservations.isNotEmpty) {
-        print(
+        AppLogger.e(
           '❌ Conflit avec ${paidReservations.length} réservation(s) payée(s) existante(s)',
         );
         return false;
       }
 
-      print('✅ Logement disponible pour cette période');
+      AppLogger.d('✅ Logement disponible pour cette période');
       return true;
     } catch (e) {
-      print('❌ Erreur lors de la vérification de disponibilité: $e');
-      throw Exception('Erreur lors de la vérification de disponibilité: $e');
+      AppLogger.e('❌ Erreur lors de la vérification de disponibilité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la vérification de disponibilité',
+      );
     }
   }
 
   /// Récupère la cartographie des statuts par date pour un logement (Mode Strict : Fermé par défaut)
-  Future<Map<DateTime, DateAvailabilityStatus>> getDateStatuses(int logementId) async {
+  Future<Map<DateTime, DateAvailabilityStatus>> getDateStatuses(
+    int logementId,
+  ) async {
     final Map<DateTime, DateAvailabilityStatus> statusMap = {};
     try {
       // 1. Initialisation : En mode strict, toutes les dates des 730 prochains jours (2 ans) sont indisponibles par défaut
@@ -364,7 +393,8 @@ class ReservationRepository {
       final nowStart = DateTime(today.year, today.month, today.day);
       for (int i = 0; i < 730; i++) {
         final day = nowStart.add(Duration(days: i));
-        statusMap[DateTime(day.year, day.month, day.day)] = DateAvailabilityStatus.indisponible;
+        statusMap[DateTime(day.year, day.month, day.day)] =
+            DateAvailabilityStatus.indisponible;
       }
 
       // 2. Récupérer toutes les plages depuis la table logement_disponibilites
@@ -384,16 +414,20 @@ class ReservationRepository {
           if (s == 'disponible') return 1;
           return 2;
         }
+
         return rank(stA).compareTo(rank(stB));
       });
 
       for (var item in dispoList) {
-        final statutStr = (item['statut'] as String? ?? 'disponible').toLowerCase();
+        final statutStr = (item['statut'] as String? ?? 'disponible')
+            .toLowerCase();
         final start = DateTime.parse(item['date_debut'] as String);
         final end = DateTime.parse(item['date_fin'] as String);
 
         DateAvailabilityStatus st;
-        if (statutStr == 'reserve' || statutStr == 'réservé' || statutStr == 'reserver') {
+        if (statutStr == 'reserve' ||
+            statutStr == 'réservé' ||
+            statutStr == 'reserver') {
           st = DateAvailabilityStatus.reserver;
         } else if (statutStr == 'indisponible') {
           st = DateAvailabilityStatus.indisponible;
@@ -418,7 +452,10 @@ class ReservationRepository {
 
       for (var item in reservationsResponse as List) {
         final st = (item['statut'] as String? ?? '').toUpperCase();
-        if (st != 'PAYE' && st != 'PAYÉ' && st != 'CONFIRMEE' && st != 'CONFIRMÉE') {
+        if (st != 'PAYE' &&
+            st != 'PAYÉ' &&
+            st != 'CONFIRMEE' &&
+            st != 'CONFIRMÉE') {
           continue;
         }
 
@@ -434,7 +471,7 @@ class ReservationRepository {
         }
       }
     } catch (e) {
-      print('❌ Erreur getDateStatuses: $e');
+      AppLogger.e('❌ Erreur getDateStatuses: $e');
     }
     return statusMap;
   }
@@ -451,10 +488,12 @@ class ReservationRepository {
         }
       }
 
-      print('📅 [getAvailableDates] Total dates disponibles: ${availableDates.length}');
+      AppLogger.d(
+        '📅 [getAvailableDates] Total dates disponibles: ${availableDates.length}',
+      );
       return availableDates;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des dates disponibles: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des dates disponibles: $e');
       return {};
     }
   }
@@ -471,10 +510,14 @@ class ReservationRepository {
         }
       }
 
-      print('📅 [getDisabledDates] Total dates désactivées (non disponibles): ${disabledDates.length}');
+      AppLogger.d(
+        '📅 [getDisabledDates] Total dates désactivées (non disponibles): ${disabledDates.length}',
+      );
       return disabledDates;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des dates indisponibles: $e');
+      AppLogger.e(
+        '❌ Erreur lors de la récupération des dates indisponibles: $e',
+      );
       return [];
     }
   }
@@ -486,7 +529,9 @@ class ReservationRepository {
     required DateTime dateFin,
   }) async {
     try {
-      print('🔄 Découpage et mise à jour des disponibilités pour le logement #$logementId...');
+      AppLogger.d(
+        '🔄 Découpage et mise à jour des disponibilités pour le logement #$logementId...',
+      );
       final reqDebut = DateTime(dateDebut.year, dateDebut.month, dateDebut.day);
       final reqFin = DateTime(dateFin.year, dateFin.month, dateFin.day);
 
@@ -502,20 +547,24 @@ class ReservationRepository {
           .gte('date_fin', reqDebutStr);
 
       final List overlappingList = overlappingResponse as List;
-      print('📋 ${overlappingList.length} plage(s) chevauchante(s) trouvée(s)');
+      AppLogger.d(
+        '📋 ${overlappingList.length} plage(s) chevauchante(s) trouvée(s)',
+      );
 
       if (overlappingList.isEmpty) {
         // Aucune plage existante chevauchante -> Insérer directement la plage réservée
         await _supabaseService.client
             .from(SupabaseConfig.logementDisponibilitesTable)
             .insert({
-          'logement_id': logementId,
-          'date_debut': reqDebutStr,
-          'date_fin': reqFinStr,
-          'statut': 'reserver',
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        print('✅ Ligne de réservation insérée directement dans logement_disponibilites');
+              'logement_id': logementId,
+              'date_debut': reqDebutStr,
+              'date_fin': reqFinStr,
+              'statut': 'reserver',
+              'created_at': DateTime.now().toIso8601String(),
+            });
+        AppLogger.d(
+          '✅ Ligne de réservation insérée directement dans logement_disponibilites',
+        );
         return;
       }
 
@@ -534,81 +583,87 @@ class ReservationRepository {
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .update({
-            'date_fin': beforeEnd.toIso8601String().split('T')[0],
-            'updated_at': DateTime.now().toIso8601String(),
-          }).eq('id', itemPlanId);
+                'date_fin': beforeEnd.toIso8601String().split('T')[0],
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', itemPlanId);
 
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .insert({
-            'logement_id': logementId,
-            'date_debut': reqDebutStr,
-            'date_fin': reqFinStr,
-            'statut': 'reserver',
-            'created_at': DateTime.now().toIso8601String(),
-          });
+                'logement_id': logementId,
+                'date_debut': reqDebutStr,
+                'date_fin': reqFinStr,
+                'statut': 'reserver',
+                'created_at': DateTime.now().toIso8601String(),
+              });
 
           final afterStart = reqFin.add(const Duration(days: 1));
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .insert({
-            'logement_id': logementId,
-            'date_debut': afterStart.toIso8601String().split('T')[0],
-            'date_fin': dispoFin.toIso8601String().split('T')[0],
-            'statut': origStatut,
-            'created_at': DateTime.now().toIso8601String(),
-          });
+                'logement_id': logementId,
+                'date_debut': afterStart.toIso8601String().split('T')[0],
+                'date_fin': dispoFin.toIso8601String().split('T')[0],
+                'statut': origStatut,
+                'created_at': DateTime.now().toIso8601String(),
+              });
         } else if (hasBeforeSegment && !hasAfterSegment) {
           // CAS B : La réservation touche la fin de la plage initiale
           final beforeEnd = reqDebut.subtract(const Duration(days: 1));
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .update({
-            'date_fin': beforeEnd.toIso8601String().split('T')[0],
-            'updated_at': DateTime.now().toIso8601String(),
-          }).eq('id', itemPlanId);
+                'date_fin': beforeEnd.toIso8601String().split('T')[0],
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', itemPlanId);
 
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .insert({
-            'logement_id': logementId,
-            'date_debut': reqDebutStr,
-            'date_fin': reqFinStr,
-            'statut': 'reserver',
-            'created_at': DateTime.now().toIso8601String(),
-          });
+                'logement_id': logementId,
+                'date_debut': reqDebutStr,
+                'date_fin': reqFinStr,
+                'statut': 'reserver',
+                'created_at': DateTime.now().toIso8601String(),
+              });
         } else if (!hasBeforeSegment && hasAfterSegment) {
           // CAS C : La réservation touche le début de la plage initiale
           final afterStart = reqFin.add(const Duration(days: 1));
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .update({
-            'date_debut': afterStart.toIso8601String().split('T')[0],
-            'updated_at': DateTime.now().toIso8601String(),
-          }).eq('id', itemPlanId);
+                'date_debut': afterStart.toIso8601String().split('T')[0],
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', itemPlanId);
 
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .insert({
-            'logement_id': logementId,
-            'date_debut': reqDebutStr,
-            'date_fin': reqFinStr,
-            'statut': 'reserver',
-            'created_at': DateTime.now().toIso8601String(),
-          });
+                'logement_id': logementId,
+                'date_debut': reqDebutStr,
+                'date_fin': reqFinStr,
+                'statut': 'reserver',
+                'created_at': DateTime.now().toIso8601String(),
+              });
         } else {
           // CAS D : La réservation englobe totalement la plage initiale
           await _supabaseService.client
               .from(SupabaseConfig.logementDisponibilitesTable)
               .update({
-            'statut': 'reserver',
-            'updated_at': DateTime.now().toIso8601String(),
-          }).eq('id', itemPlanId);
+                'statut': 'reserver',
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', itemPlanId);
         }
       }
-      print('✅ Plages de disponibilité découpées et synchronisées avec succès !');
+      AppLogger.d(
+        '✅ Plages de disponibilité découpées et synchronisées avec succès !',
+      );
     } catch (e) {
-      print('❌ Erreur lors du découpage des disponibilités: $e');
+      AppLogger.e('❌ Erreur lors du découpage des disponibilités: $e');
     }
   }
 }

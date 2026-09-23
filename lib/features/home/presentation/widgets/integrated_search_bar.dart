@@ -7,6 +7,7 @@ import 'package:vodou/features/search/presentation/widgets/guests_selector.dart'
 import 'package:vodou/features/search/presentation/widgets/price_range_selector.dart';
 import 'package:vodou/features/search/presentation/widgets/divinites_filter.dart';
 import 'package:intl/intl.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Barre de recherche intégrée avec filtres dans la HomePage
 class IntegratedSearchBar extends ConsumerWidget {
@@ -26,7 +27,7 @@ class IntegratedSearchBar extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -44,7 +45,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                     Expanded(
                       child: InkWell(
                         onTap: () {
-                          print('🟢 Zone Destination cliquée');
+                          AppLogger.d('🟢 Zone Destination cliquée');
                           _showDestinationPicker(context, ref);
                         },
                         child: Column(
@@ -77,7 +78,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                     if (filters.destination != null)
                       InkWell(
                         onTap: () {
-                          print('🔴 Bouton X Destination cliqué');
+                          AppLogger.d('🔴 Bouton X Destination cliqué');
                           ref
                               .read(searchFiltersProvider.notifier)
                               .setDestination(null);
@@ -103,7 +104,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                     Expanded(
                       child: InkWell(
                         onTap: () {
-                          print('🟢 Zone Dates cliquée');
+                          AppLogger.d('🟢 Zone Dates cliquée');
                           _showDatePicker(context, ref);
                         },
                         child: Column(
@@ -135,7 +136,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                     if (filters.dateDebut != null || filters.dateFin != null)
                       InkWell(
                         onTap: () {
-                          print('🔴 Bouton X Dates cliqué');
+                          AppLogger.d('🔴 Bouton X Dates cliqué');
                           ref
                               .read(searchFiltersProvider.notifier)
                               .setDates(null, null);
@@ -161,7 +162,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                     Expanded(
                       child: InkWell(
                         onTap: () {
-                          print('🟢 Zone Voyageurs cliquée');
+                          AppLogger.d('🟢 Zone Voyageurs cliquée');
                           _showGuestsSelector(context, ref);
                         },
                         child: Column(
@@ -195,7 +196,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                     if (filters.nbVoyageurs != null)
                       InkWell(
                         onTap: () {
-                          print('🔴 Bouton X Voyageurs cliqué');
+                          AppLogger.d('🔴 Bouton X Voyageurs cliqué');
                           ref
                               .read(searchFiltersProvider.notifier)
                               .setNbVoyageurs(null);
@@ -255,7 +256,7 @@ class IntegratedSearchBar extends ConsumerWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
+                      color: AppColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.error),
                     ),
@@ -296,7 +297,9 @@ class IntegratedSearchBar extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.primary.withOpacity(0.1) : Colors.white,
+          color: isActive
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive ? AppColors.primary : AppColors.greyLight,

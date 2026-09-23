@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kkiapay_flutter_sdk/kkiapay_flutter_sdk.dart';
 import 'package:vodou/core/config/kkiapay_config.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 class KKiaPayService {
   /// Lance le paiement via le widget officiel KKIAPAY
@@ -27,13 +28,10 @@ class KKiaPayService {
     if (amount > KKiaPayConfig.maxAmount) {
       final errorMsg =
           'Le montant total (${amount.toInt()} XOF) dépasse la limite maximale de 10 000 000 XOF autorisée par transaction KKiaPay. Veuillez raccourcir le séjour ou contacter l\'assistance.';
-      print('⚠️ $errorMsg');
+      AppLogger.w('Montant supérieur au plafond KKiaPay');
 
       if (onFailed != null) {
-        onFailed({
-          'status': 'PAYMENT_FAILED',
-          'message': errorMsg,
-        }, context);
+        onFailed({'status': 'PAYMENT_FAILED', 'message': errorMsg}, context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -60,7 +58,11 @@ class KKiaPayService {
       cleanPhone = '229${cleanPhone.substring(1)}';
     } else if (cleanPhone.length == 8) {
       cleanPhone = '229$cleanPhone';
-    } else if (cleanPhone.length > 0 && !cleanPhone.startsWith('229') && !cleanPhone.startsWith('225') && !cleanPhone.startsWith('228') && !cleanPhone.startsWith('221')) {
+    } else if (cleanPhone.isNotEmpty &&
+        !cleanPhone.startsWith('229') &&
+        !cleanPhone.startsWith('225') &&
+        !cleanPhone.startsWith('228') &&
+        !cleanPhone.startsWith('221')) {
       cleanPhone = '229$cleanPhone';
     }
 
@@ -69,31 +71,11 @@ class KKiaPayService {
       cleanPhone = '';
     }
 
-    final sdkData = SdkData(
-      reason: validReason,
-      amount: validAmount,
-      paymentMethod: const ["momo", "card"],
-      partnerId: "",
-      countries: const ["BJ", "CI", "SN", "TG"],
-      phone: cleanPhone,
-      data: "",
-      sandbox: !KKiaPayConfig.isLive,
-      apikey: apiKey,
-      theme: "#4E6BFC",
-      callbackUrl: "https://kkiapay.me",
-      name: validName,
-      email: validEmail,
-    );
-
-    print('🚀 Démarrage du paiement KKiaPay');
-    print('   Montant: $validAmount XOF');
-    print('   Nom: $validName');
-    print('   Email: $validEmail');
-    print('   Téléphone: ${cleanPhone.isEmpty ? "(vide, à saisir par l'utilisateur)" : cleanPhone}');
-    print('   Sandbox: ${!KKiaPayConfig.isLive}');
-    print('   API Key: $apiKey');
-    print('   Payload JSON: ${sdkData.toMap()}');
-    print('   Base64 URL: ${Utils.getUrl(sdkData)}');
+    // Aucune donnée de paiement n'est journalisée : ni clé d'API, ni montant,
+    // ni identité du payeur. Cf. AUDIT_SECURITE.md — VUL-08.
+    AppLogger.d('Démarrage du paiement KKiaPay', {
+      'sandbox': !KKiaPayConfig.isLive,
+    });
 
     await Navigator.push(
       context,
@@ -110,24 +92,16 @@ class KKiaPayService {
           data: '',
           partnerId: '',
           callback: (response, ctx) {
-            print('✅ Callback KKiaPay reçu');
-            print('   Response: $response');
-
+            // `response` contient l'identité du payeur et le montant :
+            // ne jamais la journaliser telle quelle.
             final status = response['status']?.toString() ?? '';
+            AppLogger.d('Callback KKiaPay', {'status': status});
 
             if (status == 'PAYMENT_SUCCESS') {
-              print('✅ Paiement réussi!');
               onSuccess(response, ctx);
-            } else if (status == 'PAYMENT_CANCELLED') {
-              print('❌ Paiement annulé');
-              if (onFailed != null) {
-                onFailed(response, ctx);
-              }
-            } else if (status == 'PAYMENT_FAILED') {
-              print('❌ Paiement échoué');
-              if (onFailed != null) {
-                onFailed(response, ctx);
-              }
+            } else if (status == 'PAYMENT_CANCELLED' ||
+                status == 'PAYMENT_FAILED') {
+              onFailed?.call(response, ctx);
             }
           },
         ),

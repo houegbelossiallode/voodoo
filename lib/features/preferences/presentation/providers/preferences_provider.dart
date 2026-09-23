@@ -3,6 +3,7 @@ import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/preferences/data/repositories/user_preferences_repository.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Provider pour le repository des préférences
 final userPreferencesRepositoryProvider = Provider<UserPreferencesRepository>((
@@ -36,7 +37,7 @@ final hasCompletedQuestionnaireProvider = FutureProvider<bool>((ref) async {
     return await repository.hasCompletedQuestionnaire(user.id);
   } catch (e) {
     // Si erreur (table n'existe pas), considérer comme non complété
-    print('⚠️ Erreur hasCompletedQuestionnaire: $e');
+    AppLogger.w('⚠️ Erreur hasCompletedQuestionnaire: $e');
     return false;
   }
 });

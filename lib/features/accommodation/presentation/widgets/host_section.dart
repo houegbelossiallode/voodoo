@@ -7,6 +7,7 @@ import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/accommodation/domain/models/host_info.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/messaging/presentation/providers/messaging_provider.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Section des informations sur l'hôte
 class HostSection extends ConsumerWidget {
@@ -34,7 +35,7 @@ class HostSection extends ConsumerWidget {
                   backgroundImage: host.photo != null
                       ? AppImage.provider(host.photo!)
                       : null,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: host.photo == null
                       ? const Icon(
                           Icons.person,
@@ -69,7 +70,9 @@ class HostSection extends ConsumerWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.secondary.withOpacity(0.2),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.2,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Row(
@@ -194,7 +197,9 @@ class HostSection extends ConsumerWidget {
                       children: host.passions.map((passion) {
                         return Chip(
                           label: Text(passion),
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          backgroundColor: AppColors.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           labelStyle: const TextStyle(
                             fontSize: 12,
                             color: AppColors.primary,
@@ -321,7 +326,7 @@ class HostSection extends ConsumerWidget {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text(ErrorMapper.toMessage(e)),
             backgroundColor: AppColors.error,
           ),
         );

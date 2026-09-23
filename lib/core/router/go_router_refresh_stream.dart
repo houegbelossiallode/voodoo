@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Classe helper pour rafraîchir GoRouter quand un Stream émet une valeur
 /// Utilisée pour écouter les changements d'authentification Supabase
@@ -10,11 +11,13 @@ class GoRouterRefreshStream extends ChangeNotifier {
     notifyListeners();
     _subscription = stream.asBroadcastStream().listen(
       (dynamic _) {
-        print('🔔 GoRouter: Changement d\'état d\'authentification détecté');
+        AppLogger.d(
+          '🔔 GoRouter: Changement d\'état d\'authentification détecté',
+        );
         notifyListeners();
       },
       onError: (error) {
-        print('❌ GoRouter: Erreur dans le stream: $error');
+        AppLogger.e('❌ GoRouter: Erreur dans le stream: $error');
       },
     );
   }

@@ -4,6 +4,7 @@ import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/favorites/domain/models/favorite.dart';
 import 'package:vodou/features/favorites/presentation/providers/favorite_provider.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Dialog pour choisir ou créer une liste de favoris
 class FavoriteListDialog extends ConsumerStatefulWidget {
@@ -91,7 +92,7 @@ class _FavoriteListDialogState extends ConsumerState<FavoriteListDialog> {
                       const Center(child: CircularProgressIndicator()),
                   error: (error, stack) => Center(
                     child: Text(
-                      'Erreur: ${error.toString()}',
+                      ErrorMapper.toMessage(error),
                       style: const TextStyle(color: AppColors.error),
                     ),
                   ),
@@ -111,7 +112,7 @@ class _FavoriteListDialogState extends ConsumerState<FavoriteListDialog> {
           Icon(
             Icons.folder_outlined,
             size: 64,
-            color: AppColors.grey.withOpacity(0.5),
+            color: AppColors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -169,7 +170,7 @@ class _FavoriteListDialogState extends ConsumerState<FavoriteListDialog> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.favorite.withOpacity(0.1),
+            color: AppColors.favorite.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.folder, color: AppColors.favorite),
@@ -316,7 +317,7 @@ class _FavoriteListDialogState extends ConsumerState<FavoriteListDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text(ErrorMapper.toMessage(e)),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),
@@ -375,7 +376,7 @@ class _FavoriteListDialogState extends ConsumerState<FavoriteListDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text(ErrorMapper.toMessage(e)),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),

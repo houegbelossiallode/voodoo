@@ -4,6 +4,7 @@ import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/search/presentation/providers/search_provider.dart';
 import 'package:vodou/features/home/presentation/providers/home_provider.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Filtre par divinités
 class DivinitesFilter extends ConsumerStatefulWidget {
@@ -123,7 +124,7 @@ class _DivinitesFilterState extends ConsumerState<DivinitesFilter> {
                             ),
                           ),
                           error: (error, stack) =>
-                              Center(child: Text('Erreur: $error')),
+                              Center(child: Text(ErrorMapper.toMessage(error))),
                         ),
                     const SizedBox(height: 24),
                   ],
@@ -138,7 +139,7 @@ class _DivinitesFilterState extends ConsumerState<DivinitesFilter> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -220,7 +221,7 @@ class _DivinitesFilterState extends ConsumerState<DivinitesFilter> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -234,8 +235,8 @@ class _DivinitesFilterState extends ConsumerState<DivinitesFilter> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.white.withOpacity(0.2)
-                    : AppColors.primary.withOpacity(0.1),
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(

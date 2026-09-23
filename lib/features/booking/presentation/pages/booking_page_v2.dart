@@ -12,6 +12,7 @@ import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:vodou/features/booking/presentation/widgets/availability_calendar_widget.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 class BookingPageV2 extends ConsumerStatefulWidget {
   final Logement logement;
@@ -87,7 +88,8 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
               logementId: widget.logement.id,
               onDateSelected: (date) {
                 setState(() {
-                  if (_checkIn == null || (_checkIn != null && _checkOut != null)) {
+                  if (_checkIn == null ||
+                      (_checkIn != null && _checkOut != null)) {
                     _checkIn = date;
                     _checkOut = null;
                   } else if (_checkIn != null && date.isAfter(_checkIn!)) {
@@ -136,7 +138,7 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
                 });
               },
               title: const Text('Je souhaite contribuer à un projet'),
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               contentPadding: EdgeInsets.zero,
             ),
 
@@ -146,7 +148,7 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
                 data: (projets) => _buildProjectSelection(projets),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Text(
-                  'Erreur: $error',
+                  ErrorMapper.toMessage(error),
                   style: const TextStyle(color: Colors.red),
                 ),
               ),
@@ -373,72 +375,79 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
       return const Text('Aucun projet disponible pour le moment');
     }
 
-    return Column(
-      children: projets.map((projet) {
-        final isSelected = _selectedProject?.id == projet.id;
-        return Card(
-          elevation: isSelected ? 4 : 1,
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
-          margin: const EdgeInsets.only(bottom: 12),
-          child: InkWell(
-            onTap: () => setState(() => _selectedProject = projet),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Radio<String>(
-                    value: projet.id,
-                    groupValue: _selectedProject?.id,
-                    onChanged: (value) {
-                      setState(() => _selectedProject = projet);
-                    },
-                    activeColor: AppColors.primary,
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          projet.titre,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          projet.description,
-                          style: Theme.of(context).textTheme.bodySmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '+${projet.pourcentageContribution}% de contribution',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                      ],
+    // RadioGroup remplace groupValue/onChanged sur chaque Radio, dépréciés
+    // depuis Flutter 3.32 : la sélection est désormais gérée par l'ancêtre.
+    return RadioGroup<String>(
+      groupValue: _selectedProject?.id,
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() {
+          _selectedProject = projets.firstWhere((p) => p.id == value);
+        });
+      },
+      child: Column(
+        children: projets.map((projet) {
+          final isSelected = _selectedProject?.id == projet.id;
+          return Card(
+            elevation: isSelected ? 4 : 1,
+            color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
+            margin: const EdgeInsets.only(bottom: 12),
+            child: InkWell(
+              onTap: () => setState(() => _selectedProject = projet),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Radio<String>(
+                      value: projet.id,
+                      activeColor: AppColors.primary,
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            projet.titre,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            projet.description,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '+${projet.pourcentageContribution}% de contribution',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -522,7 +531,9 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
     if (availableDates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Aucune date disponible pour ce logement pour le moment.'),
+          content: Text(
+            '⚠️ Aucune date disponible pour ce logement pour le moment.',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -531,10 +542,12 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
 
     bool isDateAvailable(DateTime day) {
       final normalizedDay = DateTime(day.year, day.month, day.day);
-      return availableDates.any((avail) =>
-          avail.year == normalizedDay.year &&
-          avail.month == normalizedDay.month &&
-          avail.day == normalizedDay.day);
+      return availableDates.any(
+        (avail) =>
+            avail.year == normalizedDay.year &&
+            avail.month == normalizedDay.month &&
+            avail.day == normalizedDay.day,
+      );
     }
 
     final now = DateTime.now();
@@ -542,9 +555,12 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
     final minDate = isCheckIn
         ? today
         : (_checkIn != null
-            ? DateTime(_checkIn!.year, _checkIn!.month, _checkIn!.day)
-                .add(const Duration(days: 1))
-            : today);
+              ? DateTime(
+                  _checkIn!.year,
+                  _checkIn!.month,
+                  _checkIn!.day,
+                ).add(const Duration(days: 1))
+              : today);
 
     // Filtrer les dates disponibles qui respectent minDate
     final validAvailableDates = availableDates.where((d) {
@@ -574,7 +590,10 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
         : (_checkOut ?? validAvailableDates.first);
 
     final normCandidate = DateTime(
-        initialCandidate.year, initialCandidate.month, initialCandidate.day);
+      initialCandidate.year,
+      initialCandidate.month,
+      initialCandidate.day,
+    );
 
     if (!isDateAvailable(normCandidate) || normCandidate.isBefore(minDate)) {
       initialCandidate = validAvailableDates.first;
@@ -583,8 +602,8 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
     final maxAvailableDate = validAvailableDates.last;
     final lastPickerDate =
         maxAvailableDate.isAfter(today.add(const Duration(days: 730)))
-            ? maxAvailableDate
-            : today.add(const Duration(days: 730));
+        ? maxAvailableDate
+        : today.add(const Duration(days: 730));
 
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -628,8 +647,9 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
     if (_checkIn == null || _checkOut == null) return false;
     if (_guests <= 0) return false;
     if (widget.logement.nbVoyageurMax != null &&
-        _guests > widget.logement.nbVoyageurMax!)
+        _guests > widget.logement.nbVoyageurMax!) {
       return false;
+    }
 
     // Si l'utilisateur veut contribuer, un projet doit être sélectionné
     if (_contributeToProject && _selectedProject == null) return false;
@@ -742,7 +762,7 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
                 content: Text(
                   error.toString().contains('annulé')
                       ? 'Paiement annulé'
-                      : 'Erreur: $error',
+                      : ErrorMapper.toMessage(error),
                 ),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 3),
@@ -755,7 +775,7 @@ class _BookingPageV2State extends ConsumerState<BookingPageV2> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text(ErrorMapper.toMessage(e)),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),

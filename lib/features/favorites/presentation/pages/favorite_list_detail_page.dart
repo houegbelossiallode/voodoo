@@ -10,6 +10,7 @@ import 'package:vodou/features/favorites/presentation/providers/favorite_provide
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/home/presentation/pages/main_page.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Page de détail d'une liste de favoris
 class FavoriteListDetailPage extends ConsumerWidget {
@@ -78,7 +79,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Container(
+                child: SizedBox(
                   height: MediaQuery.of(context).size.height * 0.7,
                   child: _buildEmptyState(context, ref),
                 ),
@@ -106,7 +107,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
               const Icon(Icons.error_outline, size: 64, color: AppColors.error),
               const SizedBox(height: 16),
               Text(
-                'Erreur: ${error.toString()}',
+                ErrorMapper.toMessage(error),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.error),
               ),
@@ -134,7 +135,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
           Icon(
             Icons.folder_open,
             size: 80,
-            color: AppColors.grey.withOpacity(0.5),
+            color: AppColors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -394,7 +395,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erreur: ${e.toString()}'),
+              content: Text(ErrorMapper.toMessage(e)),
               backgroundColor: AppColors.error,
               duration: const Duration(seconds: 3),
             ),
@@ -410,21 +411,23 @@ class FavoriteListDetailPage extends ConsumerWidget {
           .read(favoriteRepositoryProvider)
           .generateShareLink(favoriteList.id);
 
-      if (context.mounted) {
-        await Clipboard.setData(ClipboardData(text: link));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lien copié dans le presse-papiers'),
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      // Le messenger est capturé avant l'await suivant : `context` ne doit
+      // plus être déréférencé après la copie dans le presse-papiers (VUL-16).
+      final messenger = ScaffoldMessenger.of(context);
+      await Clipboard.setData(ClipboardData(text: link));
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Lien copié dans le presse-papiers'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text(ErrorMapper.toMessage(e)),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),
@@ -488,7 +491,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erreur: ${e.toString()}'),
+              content: Text(ErrorMapper.toMessage(e)),
               backgroundColor: AppColors.error,
               duration: const Duration(seconds: 3),
             ),
@@ -544,7 +547,7 @@ class FavoriteListDetailPage extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erreur: ${e.toString()}'),
+              content: Text(ErrorMapper.toMessage(e)),
               backgroundColor: AppColors.error,
               duration: const Duration(seconds: 3),
             ),

@@ -17,7 +17,7 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
   DateTime? _dateDebut;
   DateTime? _dateFin;
   DateTime _focusedDay = DateTime.now();
-  RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOn;
+  final RangeSelectionMode _rangeSelectionMode = RangeSelectionMode.toggledOn;
   bool _initialized = false;
 
   @override
@@ -80,7 +80,7 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
                 margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.primary),
                 ),
@@ -118,7 +118,11 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Icon(Icons.arrow_forward, color: AppColors.primary, size: 20),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                     Expanded(
                       child: Column(
@@ -179,7 +183,7 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
                     ),
                     calendarStyle: CalendarStyle(
                       todayDecoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       selectedDecoration: const BoxDecoration(
@@ -194,9 +198,11 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      rangeHighlightColor: AppColors.primary.withOpacity(0.2),
+                      rangeHighlightColor: AppColors.primary.withValues(
+                        alpha: 0.2,
+                      ),
                       withinRangeDecoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       outsideDaysVisible: false,
@@ -266,7 +272,7 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -339,7 +345,7 @@ class _DateRangeSelectorState extends ConsumerState<DateRangeSelector> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.greyLight,
           ),

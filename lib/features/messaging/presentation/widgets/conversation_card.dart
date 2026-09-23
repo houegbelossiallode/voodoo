@@ -29,10 +29,10 @@ class ConversationCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: hasUnread ? AppColors.primary.withOpacity(0.05) : null,
+          color: hasUnread ? AppColors.primary.withValues(alpha: 0.05) : null,
           border: Border(
             bottom: BorderSide(
-              color: AppColors.grey.withOpacity(0.2),
+              color: AppColors.grey.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -48,7 +48,7 @@ class ConversationCard extends StatelessWidget {
                   backgroundImage: participantAvatar != null
                       ? AppImage.provider(participantAvatar)
                       : null,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: participantAvatar == null
                       ? const Icon(
                           Icons.person,

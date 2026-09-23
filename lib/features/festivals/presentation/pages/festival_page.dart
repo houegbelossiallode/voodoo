@@ -18,7 +18,7 @@ class FestivalPage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.primary.withOpacity(0.1), Colors.white],
+            colors: [AppColors.primary.withValues(alpha: 0.1), Colors.white],
           ),
         ),
         child: SafeArea(
@@ -36,7 +36,7 @@ class FestivalPage extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -48,7 +48,7 @@ class FestivalPage extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             child: const Icon(
                               Icons.festival,
                               size: 100,
@@ -109,10 +109,10 @@ class FestivalPage extends StatelessWidget {
                       vertical: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -121,7 +121,7 @@ class FestivalPage extends StatelessWidget {
                         Icon(
                           Icons.schedule,
                           size: 48,
-                          color: AppColors.primary.withOpacity(0.7),
+                          color: AppColors.primary.withValues(alpha: 0.7),
                         ),
                         const SizedBox(height: 12),
                         const Text(

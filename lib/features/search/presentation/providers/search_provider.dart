@@ -3,6 +3,7 @@ import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:vodou/features/search/data/repositories/search_repository.dart';
 import 'package:vodou/features/search/domain/models/search_filters.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Provider pour le repository de recherche
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
@@ -121,13 +122,13 @@ final searchResultsProvider = FutureProvider<List<Logement>>((ref) async {
     return [];
   }
 
-  print('🔍 Recherche avec ${filters.activeFiltersCount} filtre(s)');
+  AppLogger.d('🔍 Recherche avec ${filters.activeFiltersCount} filtre(s)');
   return repository.searchLogements(filters);
 });
 
 /// Provider pour les suggestions de destination
-final destinationSuggestionsProvider =
-    FutureProvider.family<List<String>, String>((ref, query) async {
+final destinationSuggestionsProvider = FutureProvider.autoDispose
+    .family<List<String>, String>((ref, query) async {
       if (query.isEmpty) return [];
 
       final repository = ref.watch(searchRepositoryProvider);

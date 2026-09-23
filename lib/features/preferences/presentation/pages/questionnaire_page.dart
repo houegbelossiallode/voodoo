@@ -8,6 +8,7 @@ import 'package:vodou/features/preferences/presentation/providers/preferences_pr
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/home/data/repositories/divinite_repository.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Page du questionnaire interactif pour les préférences culturelles
 class QuestionnairePage extends ConsumerStatefulWidget {
@@ -52,7 +53,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
         _isLoadingDivinites = false;
       });
     } catch (e) {
-      print('⚠️ Erreur chargement divinités: $e');
+      AppLogger.w('⚠️ Erreur chargement divinités: $e');
       setState(() {
         _isLoadingDivinites = false;
       });
@@ -63,15 +64,17 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
     // Charger les préférences existantes si on est en mode modification
     if (!widget.isFirstTime) {
       try {
-        print('🔍 Chargement des préférences existantes...');
+        AppLogger.d('🔍 Chargement des préférences existantes...');
         final preferencesAsync = await ref.read(
           currentUserPreferencesProvider.future,
         );
 
         if (preferencesAsync != null) {
-          print('✅ Préférences trouvées:');
-          print('   - Divinités: ${preferencesAsync.divinitesPreferees}');
-          print('   - Assister rituel: ${preferencesAsync.assisterRituel}');
+          AppLogger.d('✅ Préférences trouvées:');
+          AppLogger.d('   - Divinités: ${preferencesAsync.divinitesPreferees}');
+          AppLogger.d(
+            '   - Assister rituel: ${preferencesAsync.assisterRituel}',
+          );
 
           setState(() {
             _selectedDivinites.clear();
@@ -79,10 +82,10 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
             _assisterRituel = preferencesAsync.assisterRituel;
           });
         } else {
-          print('⚠️ Aucune préférence existante trouvée');
+          AppLogger.w('⚠️ Aucune préférence existante trouvée');
         }
       } catch (e) {
-        print('⚠️ Erreur chargement préférences: $e');
+        AppLogger.w('⚠️ Erreur chargement préférences: $e');
       }
     }
   }
@@ -240,7 +243,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? color : AppColors.greyLight,
@@ -249,7 +252,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -264,7 +267,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 32, color: color),
@@ -364,7 +367,9 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withOpacity(0.1) : Colors.white,
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.greyLight,
@@ -377,7 +382,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: selected
-                    ? AppColors.primary.withOpacity(0.2)
+                    ? AppColors.primary.withValues(alpha: 0.2)
                     : AppColors.greyLight,
                 shape: BoxShape.circle,
               ),
@@ -434,7 +439,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -517,9 +522,9 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
     );
 
     try {
-      print('💾 Début de la sauvegarde des préférences...');
-      print('   Divinités: $_selectedDivinites');
-      print('   Assister rituel: $_assisterRituel');
+      AppLogger.d('💾 Début de la sauvegarde des préférences...');
+      AppLogger.d('   Divinités: $_selectedDivinites');
+      AppLogger.d('   Assister rituel: $_assisterRituel');
 
       final notifier = ref.read(userPreferencesNotifierProvider.notifier);
 
@@ -528,10 +533,10 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
         assisterRituel: _assisterRituel,
       );
 
-      print('✅ Préférences sauvegardées avec succès');
+      AppLogger.d('✅ Préférences sauvegardées avec succès');
 
       // Invalider les providers pour rafraîchir les données
-      print('🔄 Rafraîchissement des providers...');
+      AppLogger.d('🔄 Rafraîchissement des providers...');
       ref.invalidate(currentUserPreferencesProvider);
       ref.invalidate(userPreferencesNotifierProvider);
 
@@ -553,11 +558,11 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
           if (mounted) {
             if (widget.isFirstTime) {
               // Rediriger vers la page d'accueil
-              print('🏠 Redirection vers home (première fois)');
+              AppLogger.d('🏠 Redirection vers home (première fois)');
               context.go(AppRouter.home);
             } else {
               // Retourner à l'onglet Profil (sur MainPageWrapper)
-              print('🔙 Retour au profil');
+              AppLogger.d('🔙 Retour au profil');
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
@@ -568,8 +573,8 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
         });
       }
     } catch (e, stackTrace) {
-      print('❌ Erreur lors de la sauvegarde: $e');
-      print('📋 Stack trace: $stackTrace');
+      AppLogger.e('❌ Erreur lors de la sauvegarde: $e');
+      AppLogger.d('📋 Stack trace: $stackTrace');
 
       if (mounted) {
         // Fermer l'indicateur de chargement

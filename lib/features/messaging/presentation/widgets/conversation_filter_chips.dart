@@ -26,7 +26,7 @@ class ConversationFilterChips extends ConsumerWidget {
                 ref.read(conversationFilterProvider.notifier).state = filter;
               },
               backgroundColor: Colors.white,
-              selectedColor: AppColors.primary.withOpacity(0.2),
+              selectedColor: AppColors.primary.withValues(alpha: 0.2),
               checkmarkColor: AppColors.primary,
               labelStyle: TextStyle(
                 color: isSelected ? AppColors.primary : AppColors.textPrimary,
@@ -36,7 +36,7 @@ class ConversationFilterChips extends ConsumerWidget {
               side: BorderSide(
                 color: isSelected
                     ? AppColors.primary
-                    : AppColors.grey.withOpacity(0.3),
+                    : AppColors.grey.withValues(alpha: 0.3),
                 width: isSelected ? 1.5 : 1,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

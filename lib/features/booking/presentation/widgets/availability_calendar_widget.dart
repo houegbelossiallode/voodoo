@@ -84,9 +84,9 @@ class _AvailabilityCalendarWidgetState
             // Titre & Légende
             Text(
               'Aperçu des disponibilités',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildLegend(),
@@ -109,7 +109,10 @@ class _AvailabilityCalendarWidgetState
                     onPressed: _previousMonth,
                   ),
                   Text(
-                    DateFormat('MMMM yyyy', 'fr_FR').format(_focusedMonth).toUpperCase(),
+                    DateFormat(
+                      'MMMM yyyy',
+                      'fr_FR',
+                    ).format(_focusedMonth).toUpperCase(),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -126,21 +129,22 @@ class _AvailabilityCalendarWidgetState
               // Jours de la semaine
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: const ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-                    .map(
-                      (d) => Expanded(
-                        child: Text(
-                          d,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.grey,
+                children:
+                    const ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+                        .map(
+                          (d) => Expanded(
+                            child: Text(
+                              d,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.grey,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    )
-                    .toList(),
+                        )
+                        .toList(),
               ),
               const SizedBox(height: 8),
 
@@ -172,10 +176,7 @@ class _AvailabilityCalendarWidgetState
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(
@@ -187,10 +188,16 @@ class _AvailabilityCalendarWidgetState
   }
 
   Widget _buildMonthGrid() {
-    final daysInMonth =
-        DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
-    final firstWeekday =
-        DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday;
+    final daysInMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+    ).day;
+    final firstWeekday = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month,
+      1,
+    ).weekday;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

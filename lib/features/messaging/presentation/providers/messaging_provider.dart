@@ -99,20 +99,18 @@ final unreadMessagesCountProvider = FutureProvider<int>((ref) async {
 });
 
 /// Provider des messages d'une conversation
-final conversationMessagesProvider =
-    FutureProvider.family<List<ChatMessage>, int>((ref, conversationId) async {
+final conversationMessagesProvider = FutureProvider.autoDispose
+    .family<List<ChatMessage>, int>((ref, conversationId) async {
       final repository = ref.watch(messagingRepositoryProvider);
       return repository.getMessages(conversationId);
     });
 
 /// Provider d'une conversation spécifique
-final conversationProvider = FutureProvider.family<ConversationModel?, int>((
-  ref,
-  conversationId,
-) async {
-  final repository = ref.watch(messagingRepositoryProvider);
-  return repository.getConversation(conversationId);
-});
+final conversationProvider = FutureProvider.autoDispose
+    .family<ConversationModel?, int>((ref, conversationId) async {
+      final repository = ref.watch(messagingRepositoryProvider);
+      return repository.getConversation(conversationId);
+    });
 
 /// Notifier pour envoyer des messages
 class SendMessageNotifier extends StateNotifier<AsyncValue<void>> {

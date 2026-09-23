@@ -25,7 +25,7 @@ class MessageBubble extends StatelessWidget {
               backgroundImage: message.getSenderAvatar() != null
                   ? AppImage.provider(message.getSenderAvatar()!)
                   : null,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: message.getSenderAvatar() == null
                   ? const Icon(Icons.person, size: 18, color: AppColors.primary)
                   : null,
@@ -46,7 +46,7 @@ class MessageBubble extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isMe
                         ? AppColors.primary
-                        : AppColors.grey.withOpacity(0.1),
+                        : AppColors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -121,7 +121,7 @@ class MessageBubble extends StatelessWidget {
           errorWidget: Container(
             width: 200,
             height: 150,
-            color: AppColors.grey.withOpacity(0.2),
+            color: AppColors.grey.withValues(alpha: 0.2),
             child: const Icon(
               Icons.broken_image,
               size: 48,
@@ -135,8 +135,8 @@ class MessageBubble extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isMe
-              ? Colors.white.withOpacity(0.2)
-              : AppColors.grey.withOpacity(0.2),
+              ? Colors.white.withValues(alpha: 0.2)
+              : AppColors.grey.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(

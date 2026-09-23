@@ -5,6 +5,7 @@ import 'package:vodou/features/home/data/repositories/logement_repository.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Provider pour le service Supabase
 final supabaseServiceProvider = Provider<SupabaseService>((ref) {
@@ -31,7 +32,7 @@ final divinitesProvider = FutureProvider<List<Divinite>>((ref) async {
 
 /// Provider pour récupérer uniquement les divinités préférées de l'utilisateur
 final preferredDivinitesProvider = FutureProvider<List<Divinite>>((ref) async {
-  print('🎯 Chargement des divinités préférées...');
+  AppLogger.d('🎯 Chargement des divinités préférées...');
 
   // Récupérer les préférences de l'utilisateur
   final preferencesAsync = await ref.watch(
@@ -41,11 +42,11 @@ final preferredDivinitesProvider = FutureProvider<List<Divinite>>((ref) async {
 
   // Si pas de préférences, retourner toutes les divinités
   if (preferencesAsync == null || preferencesAsync.divinitesPreferees.isEmpty) {
-    print('ℹ️ Pas de préférences → toutes les divinités');
+    AppLogger.d('ℹ️ Pas de préférences → toutes les divinités');
     return repository.getAllDivinites();
   }
 
-  print('✅ Préférences trouvées: ${preferencesAsync.divinitesPreferees}');
+  AppLogger.d('✅ Préférences trouvées: ${preferencesAsync.divinitesPreferees}');
 
   // Récupérer toutes les divinités et filtrer par IDs préférés
   final allDivinites = await repository.getAllDivinites();
@@ -55,7 +56,7 @@ final preferredDivinitesProvider = FutureProvider<List<Divinite>>((ref) async {
       )
       .toList();
 
-  print('📊 ${preferredDivinites.length} divinités préférées trouvées');
+  AppLogger.d('📊 ${preferredDivinites.length} divinités préférées trouvées');
   return preferredDivinites;
 });
 
@@ -74,17 +75,15 @@ final recommendedLogementsProvider = FutureProvider<List<Logement>>((
 });
 
 /// Provider pour récupérer les logements par divinité
-final logementsByDiviniteProvider = FutureProvider.family<List<Logement>, int>((
-  ref,
-  diviniteId,
-) async {
-  final repository = ref.watch(logementRepositoryProvider);
-  return repository.getLogementsByDivinite(diviniteId);
-});
+final logementsByDiviniteProvider = FutureProvider.autoDispose
+    .family<List<Logement>, int>((ref, diviniteId) async {
+      final repository = ref.watch(logementRepositoryProvider);
+      return repository.getLogementsByDivinite(diviniteId);
+    });
 
 /// Provider pour rechercher des logements par ville
-final searchLogementsByVilleProvider =
-    FutureProvider.family<List<Logement>, String>((ref, ville) async {
+final searchLogementsByVilleProvider = FutureProvider.autoDispose
+    .family<List<Logement>, String>((ref, ville) async {
       final repository = ref.watch(logementRepositoryProvider);
       return repository.searchLogementsByVille(ville);
     });

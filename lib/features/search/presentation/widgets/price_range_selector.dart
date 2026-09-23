@@ -76,8 +76,10 @@ class _PriceRangeSelectorState extends ConsumerState<PriceRangeSelector> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.05),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                color: AppColors.primary.withValues(alpha: 0.05),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -107,9 +109,9 @@ class _PriceRangeSelectorState extends ConsumerState<PriceRangeSelector> {
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.primary.withOpacity(0.2),
+                inactiveTrackColor: AppColors.primary.withValues(alpha: 0.2),
                 thumbColor: AppColors.primary,
-                overlayColor: AppColors.primary.withOpacity(0.2),
+                overlayColor: AppColors.primary.withValues(alpha: 0.2),
                 trackHeight: 4,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
@@ -237,7 +239,7 @@ class _PriceRangeSelectorState extends ConsumerState<PriceRangeSelector> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.greyLight,
           ),

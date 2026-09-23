@@ -24,13 +24,11 @@ final recommendedAccommodationsProvider = FutureProvider<List<Logement>>((
 });
 
 /// Provider pour un logement spécifique
-final accommodationByIdProvider = FutureProvider.family<Logement?, String>((
-  ref,
-  id,
-) async {
-  final repository = ref.read(accommodationRepositoryProvider);
-  return await repository.getAccommodationById(id);
-});
+final accommodationByIdProvider = FutureProvider.autoDispose
+    .family<Logement?, String>((ref, id) async {
+      final repository = ref.read(accommodationRepositoryProvider);
+      return await repository.getAccommodationById(id);
+    });
 
 /// Provider pour la recherche de logements
 final accommodationSearchProvider =

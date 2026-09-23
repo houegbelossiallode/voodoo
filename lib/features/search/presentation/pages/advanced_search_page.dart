@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vodou/core/widgets/custom_app_bar.dart';
 import 'package:vodou/core/constants/app_colors.dart';
-import 'package:vodou/features/search/domain/models/search_filters.dart';
 import 'package:vodou/features/search/presentation/providers/search_provider.dart';
 import 'package:vodou/features/search/presentation/widgets/destination_search_field.dart';
 import 'package:vodou/features/search/presentation/widgets/date_range_selector.dart';
@@ -192,7 +191,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
   Widget _buildAdvancedFilters() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: AppColors.surface.withOpacity(0.5),
+      color: AppColors.surface.withValues(alpha: 0.5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -213,7 +212,11 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search, size: 80, color: AppColors.grey.withOpacity(0.5)),
+          Icon(
+            Icons.search,
+            size: 80,
+            color: AppColors.grey.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Commencez votre recherche',
@@ -242,7 +245,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
           Icon(
             Icons.search_off,
             size: 80,
-            color: AppColors.grey.withOpacity(0.5),
+            color: AppColors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           const Text(

@@ -5,6 +5,7 @@ import 'package:vodou/core/widgets/app_image.dart';
 import 'package:vodou/features/accommodation/domain/models/avis.dart';
 import 'package:vodou/features/accommodation/presentation/providers/accommodation_details_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Section des avis et évaluations
 class AvisSection extends ConsumerStatefulWidget {
@@ -173,7 +174,7 @@ class _AvisSectionState extends ConsumerState<AvisSection> {
                   backgroundImage: avis.userPhoto != null
                       ? AppImage.provider(avis.userPhoto!)
                       : null,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: avis.userPhoto == null
                       ? const Icon(Icons.person, color: AppColors.primary)
                       : null,
@@ -207,7 +208,7 @@ class _AvisSectionState extends ConsumerState<AvisSection> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.rating.withOpacity(0.1),
+                    color: AppColors.rating.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -423,7 +424,7 @@ class _AvisSectionState extends ConsumerState<AvisSection> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Erreur: ${e.toString()}'),
+                              content: Text(ErrorMapper.toMessage(e)),
                               backgroundColor: AppColors.error,
                             ),
                           );

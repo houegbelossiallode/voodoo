@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/data/repositories/auth_repository.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Provider pour le repository d'authentification
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -37,31 +38,35 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
 
   /// Écoute les changements d'authentification Supabase
   void _listenToAuthChanges() {
-    print(
+    AppLogger.d(
       '👂 AuthProvider: Écoute des changements d\'authentification activée',
     );
     _authSubscription = SupabaseService.instance.authStateChanges.listen(
       (AuthState authState) async {
         final event = authState.event;
-        print('🔔 AuthProvider: Événement auth reçu: $event');
+        AppLogger.d('🔔 AuthProvider: Événement auth reçu: $event');
 
         // Recharger l'utilisateur lors de la connexion et des événements majeurs
         if (event == AuthChangeEvent.signedIn ||
             event == AuthChangeEvent.tokenRefreshed ||
             event == AuthChangeEvent.userUpdated ||
             event == AuthChangeEvent.initialSession) {
-          print(
+          AppLogger.d(
             '🔄 AuthProvider: Rechargement automatique du profil suite à: $event',
           );
           await _loadCurrentUser();
-          
+
           // Si c'est une connexion via deep link (confirmation email), rediriger vers home
           if (event == AuthChangeEvent.signedIn && state.value != null) {
-            print('✅ Connexion via deep link détectée - Redirection vers home');
+            AppLogger.d(
+              '✅ Connexion via deep link détectée - Redirection vers home',
+            );
             // La redirection sera gérée par le router automatiquement
           }
         } else if (event == AuthChangeEvent.passwordRecovery) {
-          print('🔑 AuthProvider: Événement de récupération de mot de passe reçu');
+          AppLogger.d(
+            '🔑 AuthProvider: Événement de récupération de mot de passe reçu',
+          );
           // En cas de récupération de mot de passe, tenter le chargement mais ne pas bloquer l'état si non trouvé
           try {
             final user = await _authRepository.getCurrentUser();
@@ -70,33 +75,31 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
             state = const AsyncValue.data(null);
           }
         } else if (event == AuthChangeEvent.signedOut) {
-          print('👋 AuthProvider: Déconnexion détectée');
+          AppLogger.d('👋 AuthProvider: Déconnexion détectée');
           state = const AsyncValue.data(null);
         }
       },
       onError: (error) {
-        print('❌ AuthProvider: Erreur dans le stream auth: $error');
+        AppLogger.e('❌ AuthProvider: Erreur dans le stream auth: $error');
       },
     );
   }
 
   Future<void> _loadCurrentUser() async {
-    print('🔄 AuthProvider: Chargement de l\'utilisateur actuel...');
+    AppLogger.d('🔄 AuthProvider: Chargement de l\'utilisateur actuel...');
     state = const AsyncValue.loading();
     try {
-      final user = await _authRepository
-          .getCurrentUser()
-          .timeout(const Duration(seconds: 6));
+      final user = await _authRepository.getCurrentUser().timeout(
+        const Duration(seconds: 6),
+      );
       if (user != null) {
-        print(
-          '✅ AuthProvider: Utilisateur chargé: ${user.fullName} (${user.email})',
-        );
+        AppLogger.d('AuthProvider: utilisateur chargé', {'id': user.id});
       } else {
-        print('⚠️ AuthProvider: Aucun utilisateur connecté');
+        AppLogger.w('⚠️ AuthProvider: Aucun utilisateur connecté');
       }
       state = AsyncValue.data(user);
     } catch (e) {
-      print('⚠️ AuthProvider: Chargement ignoré ou délai dépassé: $e');
+      AppLogger.w('⚠️ AuthProvider: Chargement ignoré ou délai dépassé: $e');
       state = const AsyncValue.data(null);
     }
   }
@@ -159,7 +162,7 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
     try {
       await _authRepository.signOut();
     } catch (e, stack) {
-      print('⚠️ Erreur déconnexion AuthProvider: $e');
+      AppLogger.e('Erreur déconnexion AuthProvider', e, stack);
     }
   }
 
@@ -222,20 +225,22 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
   /// Connexion avec Google
   Future<GoogleAuthResult?> signInWithGoogle() async {
     try {
-      print('🔵 AuthProvider: Début connexion Google...');
+      AppLogger.d('🔵 AuthProvider: Début connexion Google...');
       state = const AsyncValue.loading();
       final result = await _authRepository.signInWithGoogle();
 
       if (result != null && !result.isNewUser && result.user != null) {
         state = AsyncValue.data(result.user);
-        print('✅ AuthProvider: Connexion Google utilisateur existant réussie');
+        AppLogger.d(
+          '✅ AuthProvider: Connexion Google utilisateur existant réussie',
+        );
       } else {
         // Nouveau compte ou annulation : attente de sélection du rôle
         state = const AsyncValue.data(null);
       }
       return result;
     } catch (e, stack) {
-      print('❌ AuthProvider: Erreur Google - $e');
+      AppLogger.e('❌ AuthProvider: Erreur Google - $e');
       state = AsyncValue.error(e, stack);
       rethrow;
     }
@@ -251,7 +256,9 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
     String? photo,
   }) async {
     try {
-      print('📝 AuthProvider: Création du profil Google avec le rôle $roleId...');
+      AppLogger.d(
+        '📝 AuthProvider: Création du profil Google avec le rôle $roleId...',
+      );
       state = const AsyncValue.loading();
       final user = await _authRepository.createOAuthUserProfile(
         supabaseId: supabaseId,
@@ -262,9 +269,9 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
         photo: photo,
       );
       state = AsyncValue.data(user);
-      print('✅ AuthProvider: Profil Google créé avec succès !');
+      AppLogger.d('✅ AuthProvider: Profil Google créé avec succès !');
     } catch (e, stack) {
-      print('❌ AuthProvider: Erreur finalisation profil OAuth - $e');
+      AppLogger.e('❌ AuthProvider: Erreur finalisation profil OAuth - $e');
       state = AsyncValue.error(e, stack);
       rethrow;
     }
@@ -273,13 +280,13 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
   /// Connexion avec Facebook
   Future<void> signInWithFacebook() async {
     try {
-      print('🔵 AuthProvider: Début connexion Facebook...');
+      AppLogger.d('🔵 AuthProvider: Début connexion Facebook...');
       state = const AsyncValue.loading();
       final user = await _authRepository.signInWithFacebook();
       state = AsyncValue.data(user);
-      print('✅ AuthProvider: Connexion Facebook réussie');
+      AppLogger.d('✅ AuthProvider: Connexion Facebook réussie');
     } catch (e, stack) {
-      print('❌ AuthProvider: Erreur Facebook - $e');
+      AppLogger.e('❌ AuthProvider: Erreur Facebook - $e');
       state = AsyncValue.error(e, stack);
       rethrow;
     }

@@ -2,6 +2,7 @@ import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/favorites/domain/models/favorite.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les favoris
 class FavoriteRepository {
@@ -22,8 +23,10 @@ class FavoriteRepository {
           .map((json) => Favorite.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception(
-        'Erreur lors de la récupération des listes de favoris: $e',
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des listes de favoris',
       );
     }
   }
@@ -49,7 +52,7 @@ class FavoriteRepository {
 
       return Favorite.fromJson(newFavorite);
     } catch (e) {
-      throw Exception('Erreur lors de la création de la liste: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la création de la liste');
     }
   }
 
@@ -64,7 +67,11 @@ class FavoriteRepository {
 
       return Favorite.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération de la liste: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération de la liste',
+      );
     }
   }
 
@@ -137,7 +144,7 @@ class FavoriteRepository {
             'created_at': DateTime.now().toIso8601String(),
           });
     } catch (e) {
-      throw Exception('Erreur lors de l\'ajout aux favoris: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'l\'ajout aux favoris');
     }
   }
 
@@ -153,7 +160,7 @@ class FavoriteRepository {
           .eq('favorite_id', favoriteId)
           .eq('logement_id', logementId);
     } catch (e) {
-      throw Exception('Erreur lors du retrait des favoris: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'retrait des favoris');
     }
   }
 
@@ -172,7 +179,7 @@ class FavoriteRepository {
         await removeLogementFromFavorite(listId, logementId);
       }
     } catch (e) {
-      throw Exception('Erreur lors du retrait des favoris: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'retrait des favoris');
     }
   }
 
@@ -187,7 +194,7 @@ class FavoriteRepository {
           })
           .eq('id', favoriteId);
     } catch (e) {
-      throw Exception('Erreur lors du renommage de la liste: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'renommage de la liste');
     }
   }
 
@@ -206,7 +213,11 @@ class FavoriteRepository {
           .delete()
           .eq('id', favoriteId);
     } catch (e) {
-      throw Exception('Erreur lors de la suppression de la liste: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la suppression de la liste',
+      );
     }
   }
 
@@ -226,7 +237,7 @@ class FavoriteRepository {
 
       return shareLink;
     } catch (e) {
-      throw Exception('Erreur lors de la génération du lien: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la génération du lien');
     }
   }
 
@@ -249,7 +260,11 @@ class FavoriteRepository {
         return Logement.fromJson(logementData);
       }).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des logements: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements',
+      );
     }
   }
 
@@ -282,7 +297,11 @@ class FavoriteRepository {
 
       return uniqueLogements.values.toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des favoris: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des favoris',
+      );
     }
   }
 

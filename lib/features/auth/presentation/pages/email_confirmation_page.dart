@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,10 +9,7 @@ import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 /// Page de confirmation email après inscription
 class EmailConfirmationPage extends ConsumerStatefulWidget {
   final String email;
-  const EmailConfirmationPage({
-    super.key,
-    required this.email,
-  });
+  const EmailConfirmationPage({super.key, required this.email});
 
   @override
   ConsumerState<EmailConfirmationPage> createState() =>
@@ -25,12 +21,12 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
 
   Future<void> _resendConfirmationEmail() async {
     setState(() => _isResending = true);
-    
+
     try {
       // Utiliser la méthode de réinitialisation de mot de passe pour renvoyer un email
       // Supabase envoie automatiquement un email de confirmation si l'utilisateur n'est pas confirmé
       await ref.read(authRepositoryProvider).resetPassword(widget.email);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -97,13 +93,13 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 40),
-              
+
               // Icône d'email
               Container(
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -112,9 +108,9 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
                   color: AppColors.primary,
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Titre
               Text(
                 'Vérifiez votre email',
@@ -124,20 +120,20 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Message principal
               Text(
                 'Nous avons envoyé un email de confirmation à:',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Email affiché
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -158,9 +154,9 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Instructions
               Text(
                 'Cliquez sur le lien dans l\'email pour confirmer votre compte et commencer à utiliser Vodoo Host.',
@@ -169,9 +165,9 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // Bouton renvoyer l'email
               OutlinedButton.icon(
                 onPressed: _isResending ? null : _resendConfirmationEmail,
@@ -200,9 +196,9 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Bouton retour connexion
               TextButton.icon(
                 onPressed: () {
@@ -211,18 +207,15 @@ class _EmailConfirmationPageState extends ConsumerState<EmailConfirmationPage> {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text(
                   'Retour à la connexion',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Note importante
               Container(
                 padding: const EdgeInsets.all(16),

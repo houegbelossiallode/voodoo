@@ -8,6 +8,7 @@ import 'package:vodou/features/festivals/domain/models/festival.dart';
 import 'package:vodou/features/festivals/presentation/pages/festival_page.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 class FestivalSelectionPage extends ConsumerWidget {
   final bool isFirstTime;
@@ -43,7 +44,9 @@ class FestivalSelectionPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final festivals = Festival.getFestivals();
 
-    print('🎪 FestivalSelectionPage - isFirstTime (paramètre): $isFirstTime');
+    AppLogger.d(
+      '🎪 FestivalSelectionPage - isFirstTime (paramètre): $isFirstTime',
+    );
 
     return PopScope(
       canPop: false,
@@ -60,12 +63,15 @@ class FestivalSelectionPage extends ConsumerWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [AppColors.primary.withOpacity(0.1), Colors.white],
+              colors: [AppColors.primary.withValues(alpha: 0.1), Colors.white],
             ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 12.0,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -73,57 +79,62 @@ class FestivalSelectionPage extends ConsumerWidget {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: AppColors.primary,
+                        ),
                         onPressed: () async {
-                          final shouldQuit = await _showExitConfirmationDialog(context);
+                          final shouldQuit = await _showExitConfirmationDialog(
+                            context,
+                          );
                           if (shouldQuit && context.mounted) {
                             await SystemNavigator.pop();
                           }
                         },
                       ),
                     ),
-                  const SizedBox(height: 8),
-                  // Titre
-                  Text(
-                    isFirstTime ? 'Bienvenue !' : 'Choisissez votre festival',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                    const SizedBox(height: 8),
+                    // Titre
+                    Text(
+                      isFirstTime ? 'Bienvenue !' : 'Choisissez votre festival',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isFirstTime
-                        ? 'Sélectionnez le festival qui vous intéresse'
-                        : 'Quel festival souhaitez-vous explorer ?',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 8),
+                    Text(
+                      isFirstTime
+                          ? 'Sélectionnez le festival qui vous intéresse'
+                          : 'Quel festival souhaitez-vous explorer ?',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  // Liste des festivals
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: festivals.length,
-                    itemBuilder: (context, index) {
-                      final festival = festivals[index];
-                      return _buildFestivalCard(context, ref, festival);
-                    },
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    // Liste des festivals
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: festivals.length,
+                      itemBuilder: (context, index) {
+                        final festival = festivals[index];
+                        return _buildFestivalCard(context, ref, festival);
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildFestivalCard(
     BuildContext context,
@@ -144,7 +155,7 @@ class FestivalSelectionPage extends ConsumerWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -156,7 +167,7 @@ class FestivalSelectionPage extends ConsumerWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       child: const Icon(
                         Icons.festival,
                         size: 80,
@@ -219,39 +230,42 @@ class FestivalSelectionPage extends ConsumerWidget {
     WidgetRef ref,
     Festival festival,
   ) async {
-    print('🎉 Festival sélectionné: ${festival.nom}');
-    print('   festival.id: ${festival.id}');
+    AppLogger.d('🎉 Festival sélectionné: ${festival.nom}');
+    AppLogger.d('   festival.id: ${festival.id}');
 
     // Vodun Days → Vodoo Host (page d'accueil)
     if (festival.id == 'vodun_days') {
-      print('   ✅ Festival Vodun Days détecté');
+      AppLogger.d('   ✅ Festival Vodun Days détecté');
 
       // Vérifier si l'utilisateur a des préférences
       final user = ref.read(currentUserProvider).value;
       if (user != null && user.role?.toLowerCase() == 'visiteur') {
         try {
-          print('   🔍 Vérification des préférences utilisateur...');
+          AppLogger.d('   🔍 Vérification des préférences utilisateur...');
           final asyncState = ref.read(hasCompletedQuestionnaireProvider);
-          final bool hasCompleted = asyncState.value ??
+          final bool hasCompleted =
+              asyncState.value ??
               await ref.read(hasCompletedQuestionnaireProvider.future);
 
-          print('   📊 hasCompleted = $hasCompleted');
+          AppLogger.d('   📊 hasCompleted = $hasCompleted');
 
           if (context.mounted) {
             if (!hasCompleted) {
               // Pas de préférences → aller au questionnaire
-              print(
+              AppLogger.d(
                 '   📋 Aucune préférence → Redirection vers le questionnaire',
               );
               context.push(AppRouter.questionnaire, extra: true);
             } else {
               // Préférences existantes → aller à la page d'accueil
-              print('   🏠 Préférences existantes → Redirection vers Vodoo Host');
+              AppLogger.d(
+                '   🏠 Préférences existantes → Redirection vers Vodoo Host',
+              );
               context.push(AppRouter.home);
             }
           }
         } catch (e) {
-          print('   ⚠️ Erreur vérification préférences: $e');
+          AppLogger.w('   ⚠️ Erreur vérification préférences: $e');
           // En cas d'erreur, rediriger vers le questionnaire par sécurité
           if (context.mounted) {
             context.push(AppRouter.questionnaire, extra: true);
@@ -259,14 +273,14 @@ class FestivalSelectionPage extends ConsumerWidget {
         }
       } else {
         // Non visiteur → aller directement à la page d'accueil
-        print('   🏠 Non visiteur → Redirection vers Vodoo Host');
+        AppLogger.d('   🏠 Non visiteur → Redirection vers Vodoo Host');
         if (context.mounted) {
           context.push(AppRouter.home);
         }
       }
     } else {
       // Autres festivals → page générique du festival
-      print(
+      AppLogger.d(
         '   🎪 Autre festival → Redirection vers la page du festival ${festival.nom}',
       );
       if (context.mounted) {

@@ -328,7 +328,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -350,7 +350,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withOpacity(0.1),
+                        color: AppColors.primaryLight.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -398,7 +398,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide(
-                            color: AppColors.grey.withOpacity(0.3),
+                            color: AppColors.grey.withValues(alpha: 0.3),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(

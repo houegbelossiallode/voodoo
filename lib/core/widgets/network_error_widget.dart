@@ -26,7 +26,7 @@ class NetworkErrorWidget extends StatelessWidget {
             Icon(
               Icons.wifi_off_rounded,
               size: 64,
-              color: AppColors.grey.withOpacity(0.5),
+              color: AppColors.grey.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -63,9 +63,11 @@ class NetworkErrorWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                border: Border.all(
+                  color: AppColors.info.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

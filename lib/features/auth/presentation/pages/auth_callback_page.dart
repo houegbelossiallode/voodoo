@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Page qui gère le callback de confirmation email depuis Supabase
 /// Cette page est appelée via deep link: vodoohost://auth/callback
@@ -29,23 +31,25 @@ class _AuthCallbackPageState extends ConsumerState<AuthCallbackPage> {
       // Supabase Flutter SDK gère automatiquement les tokens dans l'URL
       // Nous devons juste vérifier si la session est active
       final supabase = SupabaseService.instance;
-      
+
       // Attendre que Supabase traite le deep link et crée la session
       // On essaie plusieurs fois car le traitement peut prendre du temps
       for (int i = 0; i < 10; i++) {
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         final session = supabase.client.auth.currentSession;
-        
+
         if (session != null) {
-          print('✅ Session détectée après ${i + 1} essai(s)');
-          print('   Email: ${session.user.email}');
-          print('   Email confirmé: ${session.user.emailConfirmedAt != null}');
-          
+          AppLogger.d('✅ Session détectée après ${i + 1} essai(s)');
+          AppLogger.d('   Email: ${session.user.email}');
+          AppLogger.d(
+            '   Email confirmé: ${session.user.emailConfirmedAt != null}',
+          );
+
           if (session.user.emailConfirmedAt != null) {
             // Rafraîchir l'utilisateur pour créer le profil si nécessaire
             await ref.read(currentUserProvider.notifier).refresh();
-            
+
             if (mounted) {
               // Rediriger vers la page d'accueil
               context.go(AppRouter.home);
@@ -54,21 +58,22 @@ class _AuthCallbackPageState extends ConsumerState<AuthCallbackPage> {
           }
         }
       }
-      
+
       // Si après 5 secondes toujours pas de session
-      print('⚠️ Aucune session détectée après 5 secondes');
+      AppLogger.w('⚠️ Aucune session détectée après 5 secondes');
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          _errorMessage = 'Email non confirmé ou session expirée. Veuillez réessayer.';
+          _errorMessage =
+              'Email non confirmé ou session expirée. Veuillez réessayer.';
         });
       }
     } catch (e) {
-      print('❌ Erreur lors du traitement du callback: $e');
+      AppLogger.e('❌ Erreur lors du traitement du callback: $e');
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          _errorMessage = 'Erreur: ${e.toString()}';
+          _errorMessage = ErrorMapper.toMessage(e);
         });
       }
     }
@@ -97,10 +102,7 @@ class _AuthCallbackPageState extends ConsumerState<AuthCallbackPage> {
                       const SizedBox(height: 8),
                       Text(
                         'Veuillez patienter',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   )

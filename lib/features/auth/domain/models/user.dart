@@ -61,10 +61,11 @@ class User {
 
     // Récupérer le libellé du rôle depuis la jointure PostgreSQL/Supabase (relation users.role_id -> roles.id)
     String? roleLibelle;
-    
+
     if (json['role'] != null) {
       if (json['role'] is Map) {
-        roleLibelle = (json['role'] as Map<String, dynamic>)['libelle'] as String?;
+        roleLibelle =
+            (json['role'] as Map<String, dynamic>)['libelle'] as String?;
       } else if (json['role'] is String) {
         final roleStr = json['role'] as String;
         if (int.tryParse(roleStr) == null) {
@@ -72,10 +73,11 @@ class User {
         }
       }
     }
-    
+
     if (roleLibelle == null && json['roles'] != null) {
       if (json['roles'] is Map) {
-        roleLibelle = (json['roles'] as Map<String, dynamic>)['libelle'] as String?;
+        roleLibelle =
+            (json['roles'] as Map<String, dynamic>)['libelle'] as String?;
       } else if (json['roles'] is List && (json['roles'] as List).isNotEmpty) {
         final firstRole = (json['roles'] as List).first;
         if (firstRole is Map) {
@@ -90,7 +92,9 @@ class User {
     }
 
     return User(
-      id: json['id'] is int ? json['id'] as int : (int.tryParse(json['id'].toString()) ?? 0),
+      id: json['id'] is int
+          ? json['id'] as int
+          : (int.tryParse(json['id'].toString()) ?? 0),
       supabaseId: json['supabase_id'] as String?,
       nom: json['nom'] as String? ?? '',
       prenom: json['prenom'] as String? ?? '',
@@ -219,9 +223,9 @@ class UserPreferences {
           : 0,
       divinitesPreferees: json['divinites_preferees'] != null
           ? (json['divinites_preferees'] as List<dynamic>)
-              .map((e) => int.tryParse(e.toString()) ?? 0)
-              .where((e) => e != 0)
-              .toList()
+                .map((e) => int.tryParse(e.toString()) ?? 0)
+                .where((e) => e != 0)
+                .toList()
           : [],
       assisterRituel: json['assister_rituel'] as bool? ?? false,
       preferredCurrency: json['preferred_currency'] as String? ?? 'XOF',

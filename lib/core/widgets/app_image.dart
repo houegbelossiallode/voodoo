@@ -49,7 +49,9 @@ class AppImage extends StatelessWidget {
       } catch (_) {}
     }
 
-    if (localPath.startsWith('/') || localPath.contains(':/') || localPath.contains(':\\')) {
+    if (localPath.startsWith('/') ||
+        localPath.contains(':/') ||
+        localPath.contains(':\\')) {
       final file = File(localPath);
       if (file.existsSync()) {
         return Image.file(
@@ -83,9 +85,7 @@ class AppImage extends StatelessWidget {
           width: width,
           height: height,
           color: AppColors.greyLight,
-          child: const Center(
-            child: Icon(Icons.image, color: AppColors.grey),
-          ),
+          child: const Center(child: Icon(Icons.image, color: AppColors.grey)),
         );
   }
 
@@ -106,7 +106,9 @@ class AppImage extends StatelessWidget {
         localPath = Uri.parse(localPath).toFilePath();
       } catch (_) {}
     }
-    if (localPath.startsWith('/') || localPath.contains(':/') || localPath.contains(':\\')) {
+    if (localPath.startsWith('/') ||
+        localPath.contains(':/') ||
+        localPath.contains(':\\')) {
       final file = File(localPath);
       if (file.existsSync()) {
         return FileImage(file);

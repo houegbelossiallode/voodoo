@@ -28,7 +28,7 @@ class PreferencesCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.secondary.withOpacity(0.2),
+                    color: AppColors.secondary.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -127,7 +127,7 @@ class PreferencesCard extends ConsumerWidget {
                   _getDiviniteName(divinite),
                   style: const TextStyle(fontSize: 12),
                 ),
-                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                 side: const BorderSide(color: AppColors.primary),
               );
             }).toList(),

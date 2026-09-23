@@ -15,16 +15,14 @@ final allRitualsProvider = FutureProvider<List<Ritual>>((ref) async {
 });
 
 /// Provider pour récupérer les rituels d'un logement
-final logementRitualsProvider = FutureProvider.family<List<Ritual>, int>((
-  ref,
-  logementId,
-) async {
-  final repository = ref.watch(ritualRepositoryProvider);
-  return repository.getLogementRituals(logementId);
-});
+final logementRitualsProvider = FutureProvider.autoDispose
+    .family<List<Ritual>, int>((ref, logementId) async {
+      final repository = ref.watch(ritualRepositoryProvider);
+      return repository.getLogementRituals(logementId);
+    });
 
 /// Provider pour récupérer les détails d'un rituel
-final ritualDetailsProvider = FutureProvider.family<Ritual?, int>((
+final ritualDetailsProvider = FutureProvider.autoDispose.family<Ritual?, int>((
   ref,
   ritualId,
 ) async {
@@ -33,22 +31,18 @@ final ritualDetailsProvider = FutureProvider.family<Ritual?, int>((
 });
 
 /// Provider pour récupérer les rituels d'une divinité
-final diviniteRitualsProvider = FutureProvider.family<List<Ritual>, int>((
-  ref,
-  diviniteId,
-) async {
-  final repository = ref.watch(ritualRepositoryProvider);
-  return repository.getRitualsByDivinite(diviniteId);
-});
+final diviniteRitualsProvider = FutureProvider.autoDispose
+    .family<List<Ritual>, int>((ref, diviniteId) async {
+      final repository = ref.watch(ritualRepositoryProvider);
+      return repository.getRitualsByDivinite(diviniteId);
+    });
 
 /// Provider pour rechercher des rituels
-final searchRitualsProvider = FutureProvider.family<List<Ritual>, String>((
-  ref,
-  query,
-) async {
-  final repository = ref.watch(ritualRepositoryProvider);
-  return repository.searchRituals(query);
-});
+final searchRitualsProvider = FutureProvider.autoDispose
+    .family<List<Ritual>, String>((ref, query) async {
+      final repository = ref.watch(ritualRepositoryProvider);
+      return repository.searchRituals(query);
+    });
 
 /// Provider pour récupérer les rituels disponibles
 final availableRitualsProvider = FutureProvider<List<Ritual>>((ref) async {

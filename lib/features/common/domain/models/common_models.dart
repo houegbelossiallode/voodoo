@@ -1,4 +1,5 @@
 /// Modèles communs utilisés dans toute l'application
+library;
 
 /// Modèle pour la table 'roles'
 class Role {

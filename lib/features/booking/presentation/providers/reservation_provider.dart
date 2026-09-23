@@ -4,6 +4,7 @@ import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/core/services/kkiapay_service.dart';
 import 'package:vodou/features/booking/data/repositories/reservation_repository.dart';
 import 'package:vodou/features/booking/domain/models/reservation.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Provider pour le service KKiaPay
 final kkiaPayPaymentServiceProvider = Provider<KKiaPayService>((ref) {
@@ -16,26 +17,22 @@ final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
 });
 
 /// Provider pour les réservations d'un utilisateur
-final userReservationsProvider = FutureProvider.family<List<Reservation>, int>((
-  ref,
-  userId,
-) async {
-  final repository = ref.read(reservationRepositoryProvider);
-  return repository.getUserReservations(userId);
-});
+final userReservationsProvider = FutureProvider.autoDispose
+    .family<List<Reservation>, int>((ref, userId) async {
+      final repository = ref.read(reservationRepositoryProvider);
+      return repository.getUserReservations(userId);
+    });
 
 /// Provider pour une réservation spécifique
-final reservationByIdProvider = FutureProvider.family<Reservation?, int>((
-  ref,
-  reservationId,
-) async {
-  final repository = ref.read(reservationRepositoryProvider);
-  return repository.getReservationById(reservationId);
-});
+final reservationByIdProvider = FutureProvider.autoDispose
+    .family<Reservation?, int>((ref, reservationId) async {
+      final repository = ref.read(reservationRepositoryProvider);
+      return repository.getReservationById(reservationId);
+    });
 
 /// Provider pour vérifier la disponibilité d'un logement
-final checkAvailabilityProvider =
-    FutureProvider.family<bool, Map<String, dynamic>>((ref, params) async {
+final checkAvailabilityProvider = FutureProvider.autoDispose
+    .family<bool, Map<String, dynamic>>((ref, params) async {
       final repository = ref.read(reservationRepositoryProvider);
       return repository.checkAvailability(
         logementId: params['logementId'] as int,
@@ -71,11 +68,7 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
     state = const AsyncValue.loading();
 
     try {
-      print('💳 Ouverture de la page de paiement KKiaPay...');
-      print('   Montant: ${montant.toInt()} XOF');
-      print('   Client: $firstName $lastName');
-      print('   Email: $email');
-      print('   Téléphone: $phone');
+      AppLogger.d('💳 Ouverture de la page de paiement KKiaPay...');
 
       // Lancer le paiement KKiaPay
       await _paymentService.startPayment(
@@ -90,10 +83,8 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
             final transactionId = response['transactionId']?.toString() ?? '';
             final paymentStatus = response['status']?.toString() ?? '';
 
-            print('✅ Paiement KKiaPay réussi!');
-            print('   Transaction ID: $transactionId');
-            print('   Status: $paymentStatus');
-            print('   Response complète: $response');
+            // `response` contient l'identité du payeur : jamais journalisée.
+            AppLogger.d('Paiement KKiaPay abouti', {'status': paymentStatus});
 
             // Créer la réservation dans Supabase avec les infos de paiement
             final reservation = await _repository.createReservation(
@@ -109,26 +100,29 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
               projetId: projetId,
             );
 
-            print('✅ Réservation enregistrée avec succès!');
-            print('   Réservation ID: ${reservation.id}');
-            print('   Transaction: $transactionId');
-            print('   Montant: ${reservation.montant} XOF');
+            AppLogger.d('Réservation enregistrée', {'id': reservation.id});
 
             state = AsyncValue.data(reservation);
 
-            // Fermer la page KKiaPay
-            Navigator.pop(ctx);
+            // Fermer la page KKiaPay.
+            // `ctx` traverse un await : sans cette garde, un utilisateur qui
+            // quitte l'écran pendant l'écriture provoque un crash (VUL-16).
+            if (ctx.mounted) Navigator.pop(ctx);
           } catch (e, stack) {
-            print('❌ Erreur lors de l\'enregistrement de la réservation: $e');
+            AppLogger.e(
+              'Échec de l\'enregistrement de la réservation',
+              e,
+              stack,
+            );
             state = AsyncValue.error(e, stack);
-            Navigator.pop(ctx);
+            if (ctx.mounted) Navigator.pop(ctx);
           }
         },
         onFailed: (response, ctx) {
           final status = response['status']?.toString() ?? '';
-          print('❌ Paiement échoué ou annulé');
-          print('   Status: $status');
-          print('   Response: $response');
+          AppLogger.e('❌ Paiement échoué ou annulé');
+          AppLogger.d('   Status: $status');
+          AppLogger.d('   Response: $response');
 
           final errorMessage = status == 'PAYMENT_CANCELLED'
               ? 'Paiement annulé par l\'utilisateur'
@@ -139,7 +133,7 @@ class ReservationNotifier extends StateNotifier<AsyncValue<Reservation?>> {
         },
       );
     } catch (e, stack) {
-      print('❌ Erreur lors du processus de réservation: $e');
+      AppLogger.e('❌ Erreur lors du processus de réservation: $e');
       state = AsyncValue.error(e, stack);
       rethrow;
     }

@@ -46,66 +46,66 @@ class DivinitesSection extends StatelessWidget {
         onTap: () => _showDiviniteDetailsDialog(context, divinite),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image ou icône
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AppImage(
-                  url: divinite.image,
-                  fit: BoxFit.cover,
-                  errorWidget: const Icon(
-                    Icons.auto_awesome,
-                    color: AppColors.primary,
-                    size: 32,
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image ou icône
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: AppImage(
+                    url: divinite.image,
+                    fit: BoxFit.cover,
+                    errorWidget: const Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.primary,
+                      size: 32,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Informations
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    divinite.nom,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (divinite.description != null) ...[
-                    const SizedBox(height: 4),
+              const SizedBox(width: 16),
+              // Informations
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      divinite.description!,
+                      divinite.nom,
                       style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    if (divinite.description != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        divinite.description!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.grey),
-          ],
+              const Icon(Icons.chevron_right, color: AppColors.grey),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _showDiviniteDetailsDialog(BuildContext context, Divinite divinite) {
     showDialog(
@@ -147,7 +147,8 @@ class DivinitesSection extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                divinite.description ?? 'Aucune description disponible pour cette divinité.',
+                divinite.description ??
+                    'Aucune description disponible pour cette divinité.',
                 style: const TextStyle(fontSize: 14, height: 1.5),
               ),
             ],

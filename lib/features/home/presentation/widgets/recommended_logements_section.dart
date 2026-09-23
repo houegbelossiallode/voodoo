@@ -143,7 +143,7 @@ class RecommendedLogementsSection extends ConsumerWidget {
       padding: const EdgeInsets.all(32),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.greyLight.withOpacity(0.3),
+        color: AppColors.greyLight.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -151,7 +151,7 @@ class RecommendedLogementsSection extends ConsumerWidget {
           Icon(
             Icons.search_off,
             size: 64,
-            color: AppColors.grey.withOpacity(0.5),
+            color: AppColors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -177,7 +177,7 @@ class RecommendedLogementsSection extends ConsumerWidget {
       padding: const EdgeInsets.all(32),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.1),
+        color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -223,7 +223,7 @@ class _LogementCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

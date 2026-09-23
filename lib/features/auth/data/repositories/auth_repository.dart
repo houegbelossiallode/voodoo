@@ -5,6 +5,8 @@ import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
 import 'package:vodou/features/auth/domain/models/role.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer l'authentification avec Supabase
 class AuthRepository {
@@ -23,7 +25,7 @@ class AuthRepository {
           .map((json) => Role.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des rôles: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la récupération des rôles');
     }
   }
 
@@ -43,10 +45,7 @@ class AuthRepository {
   }) async {
     try {
       // 1. Créer le compte Supabase Auth avec les métadonnées
-      print(' Inscription avec confirmation email...');
-      print('   - Email: $email');
-      print('   - Nom: $nom, Prénom: $prenom');
-      print('   - Rôle ID: $roleId');
+      AppLogger.d(' Inscription avec confirmation email...');
 
       final authResponse = await _supabase.auth.signUp(
         email: email,
@@ -70,63 +69,84 @@ class AuthRepository {
       }
 
       // Vérifier si l'email existe déjà (compte déjà créé mais non confirmé)
-      if (authResponse.user!.identities != null && authResponse.user!.identities!.isEmpty) {
-        print('⚠️ Email déjà existant mais non confirmé');
-        throw Exception('Cette adresse email est déjà utilisée mais le compte n\'a pas été confirmé. Veuillez vérifier votre boîte mail pour confirmer votre compte, ou utilisez une autre adresse email.');
+      if (authResponse.user!.identities != null &&
+          authResponse.user!.identities!.isEmpty) {
+        AppLogger.w('⚠️ Email déjà existant mais non confirmé');
+        throw Exception(
+          'Cette adresse email est déjà utilisée mais le compte n\'a pas été confirmé. Veuillez vérifier votre boîte mail pour confirmer votre compte, ou utilisez une autre adresse email.',
+        );
       }
 
-      print(' Compte créé avec succès - En attente de confirmation email');
-      print('   - Données stockées dans user_metadata');
-      print('   - URL de redirection: vodoohost://auth/callback');
+      AppLogger.d(
+        ' Compte créé avec succès - En attente de confirmation email',
+      );
+      AppLogger.d('   - Données stockées dans user_metadata');
+      AppLogger.d('   - URL de redirection: vodoohost://auth/callback');
 
       // Si la confirmation email est désactivée (mode développement), créer le profil immédiatement
       if (SupabaseConfig.disableEmailConfirmation) {
-        print(' Confirmation email désactivée - Création immédiate du profil');
+        AppLogger.d(
+          ' Confirmation email désactivée - Création immédiate du profil',
+        );
         final user = await _createProfileFromMetadata(authResponse.user!.id);
         return user;
       }
 
       return null;
     } on AuthException catch (e) {
-      print('❌ Erreur Supabase lors de l\'inscription');
-      print('   Message: ${e.message}');
-      print('   Status code: ${e.statusCode}');
-      
+      AppLogger.e('❌ Erreur Supabase lors de l\'inscription');
+      AppLogger.d('   Message: ${e.message}');
+      AppLogger.d('   Status code: ${e.statusCode}');
+
       // Personnaliser les messages d'erreur selon le type d'erreur
       String errorMessage;
-      
-      if (e.message.contains('User already registered') || 
+
+      if (e.message.contains('User already registered') ||
           e.message.contains('already registered') ||
           e.message.contains('already exists') ||
           e.message.contains('user_already_exists') ||
           e.message.contains('duplicate') ||
           e.message.contains('email_already_in_use')) {
-        errorMessage = 'Cette adresse email est déjà utilisée. Veuillez vous connecter ou utiliser une autre adresse email.';
-      } else if (e.message.contains('Invalid email') || e.message.contains('invalid_email')) {
-        errorMessage = 'L\'adresse email n\'est pas valide. Veuillez vérifier votre saisie.';
-      } else if (e.message.contains('Password') || e.message.contains('password')) {
+        errorMessage =
+            'Cette adresse email est déjà utilisée. Veuillez vous connecter ou utiliser une autre adresse email.';
+      } else if (e.message.contains('Invalid email') ||
+          e.message.contains('invalid_email')) {
+        errorMessage =
+            'L\'adresse email n\'est pas valide. Veuillez vérifier votre saisie.';
+      } else if (e.message.contains('Password') ||
+          e.message.contains('password')) {
         errorMessage = 'Le mot de passe doit contenir au moins 6 caractères.';
-      } else if (e.message.contains('rate limit') || e.message.contains('too many')) {
-        errorMessage = 'Trop de tentatives d\'inscription. Veuillez réessayer dans quelques minutes.';
-      } else if (e.statusCode == 429) {
-        errorMessage = 'Trop de tentatives. Veuillez attendre quelques instants avant de réessayer.';
-      } else if (e.statusCode == 400) {
-        errorMessage = e.message.isNotEmpty ? e.message : 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
+      } else if (e.message.contains('rate limit') ||
+          e.message.contains('too many')) {
+        errorMessage =
+            'Trop de tentatives d\'inscription. Veuillez réessayer dans quelques minutes.';
+      } else if (e.statusCode == '429') {
+        // `statusCode` est un String? : les comparaisons avec des int étaient
+        // toujours fausses, rendant ces deux branches mortes (VUL-15).
+        errorMessage =
+            'Trop de tentatives. Veuillez attendre quelques instants avant de réessayer.';
+      } else if (e.statusCode == '400') {
+        errorMessage = e.message.isNotEmpty
+            ? e.message
+            : 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
       } else {
-        errorMessage = 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
+        errorMessage =
+            'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
       }
-      
+
       throw Exception(errorMessage);
     } catch (e) {
-      print('❌ Erreur inattendue lors de l\'inscription: $e');
-      print('   Type: ${e.runtimeType}');
-      
+      AppLogger.e('❌ Erreur inattendue lors de l\'inscription: $e');
+      AppLogger.d('   Type: ${e.runtimeType}');
+
       // Si c'est une Exception personnalisée, on la rethrow telle quelle
       if (e is Exception) {
         rethrow;
       }
-      
-      throw Exception('Une erreur inattendue est survenue. Veuillez réessayer.');
+
+      throw Exception(
+        'Une erreur inattendue est survenue. Veuillez réessayer.',
+      );
     }
   }
 
@@ -136,39 +156,40 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      print(' AuthRepository: Appel Supabase signInWithPassword...');
+      AppLogger.d(' AuthRepository: Appel Supabase signInWithPassword...');
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      print(' AuthRepository: Réponse Supabase reçue');
-      print(' User ID: ${response.user?.id}');
-      print('📡 AuthRepository: Réponse Supabase reçue');
-      print('📡 User ID: ${response.user?.id}');
+      AppLogger.d(' AuthRepository: Réponse Supabase reçue');
+      AppLogger.d('📡 AuthRepository: Réponse Supabase reçue');
 
       if (response.user != null) {
-        print('📡 AuthRepository: Récupération du profil utilisateur...');
+        AppLogger.d('📡 AuthRepository: Récupération du profil utilisateur...');
         final user = await _getUserProfile(response.user!.id);
-        
+
         // Si le profil n'existe pas, essayer de le créer depuis user_metadata
         if (user == null) {
-          print('📝 Profil non trouvé - Tentative de création depuis user_metadata...');
-          final createdUser = await _createProfileFromMetadata(response.user!.id);
+          AppLogger.d(
+            '📝 Profil non trouvé - Tentative de création depuis user_metadata...',
+          );
+          final createdUser = await _createProfileFromMetadata(
+            response.user!.id,
+          );
           if (createdUser != null) {
-            print('✅ Profil créé depuis user_metadata');
+            AppLogger.d('✅ Profil créé depuis user_metadata');
             return createdUser;
           }
         }
-        
-        print('📡 AuthRepository: Profil récupéré: ${user?.fullName}');
+
         return user;
       }
-      print('⚠️ AuthRepository: Aucun utilisateur dans la réponse');
+      AppLogger.w('⚠️ AuthRepository: Aucun utilisateur dans la réponse');
       return null;
     } catch (e) {
-      print('❌ AuthRepository: Erreur - $e');
-      throw Exception('Erreur lors de la connexion: $e');
+      AppLogger.e('❌ AuthRepository: Erreur - $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la connexion');
     }
   }
 
@@ -178,17 +199,18 @@ class AuthRepository {
       // Récupérer l'utilisateur courant pour accéder aux métadonnées
       final currentUser = _supabase.auth.currentUser;
       if (currentUser == null) {
-        print('⚠️ Aucun utilisateur courant trouvé');
+        AppLogger.w('⚠️ Aucun utilisateur courant trouvé');
         return null;
       }
 
       final metadata = currentUser.userMetadata;
       if (metadata == null) {
-        print('⚠️ Aucune métadonnée trouvée pour cet utilisateur');
+        AppLogger.w('⚠️ Aucune métadonnée trouvée pour cet utilisateur');
         return null;
       }
 
-      print('📝 Métadonnées trouvées: $metadata');
+      // `metadata` contient nom, téléphone, profession : jamais journalisé.
+      AppLogger.d('Métadonnées utilisateur présentes');
 
       // Extraire les données des métadonnées
       final nom = metadata['nom'] as String? ?? '';
@@ -202,43 +224,44 @@ class AuthRepository {
       final email = currentUser.email ?? '';
 
       if (roleId == null) {
-        print('⚠️ role_id manquant dans les métadonnées');
+        AppLogger.w('⚠️ role_id manquant dans les métadonnées');
         return null;
       }
 
       // Créer le profil dans la table users
-      final userProfile = await _supabase
-          .from(SupabaseConfig.usersTable)
-          .insert({
-            'supabase_id': supabaseId,
-            'nom': nom.isNotEmpty ? nom : 'Utilisateur',
-            'prenom': prenom.isNotEmpty ? prenom : 'Nouveau',
-            'email': email,
-            'telephone': telephone,
-            'profession': profession,
-            'langue': langue ?? ['fr'],
-            'passions': passions ?? [],
-            'bio': bio,
-            'role_id': roleId,
-            'actif': 'OUI',
-            'created_at': DateTime.now().toIso8601String(),
-          })
-          .select('''
+      final userProfile =
+          await _supabase
+                  .from(SupabaseConfig.usersTable)
+                  .insert({
+                    'supabase_id': supabaseId,
+                    'nom': nom.isNotEmpty ? nom : 'Utilisateur',
+                    'prenom': prenom.isNotEmpty ? prenom : 'Nouveau',
+                    'email': email,
+                    'telephone': telephone,
+                    'profession': profession,
+                    'langue': langue ?? ['fr'],
+                    'passions': passions ?? [],
+                    'bio': bio,
+                    'role_id': roleId,
+                    'actif': 'OUI',
+                    'created_at': DateTime.now().toIso8601String(),
+                  })
+                  .select('''
             *,
             role:${SupabaseConfig.rolesTable}!role_id(id, libelle)
           ''')
-          as List<dynamic>;
+              as List<dynamic>;
 
       if (userProfile.isEmpty) {
-        print('⚠️ Erreur lors de la création du profil');
+        AppLogger.w('⚠️ Erreur lors de la création du profil');
         return null;
       }
 
       final profileData = userProfile.first as Map<String, dynamic>;
-      print('✅ Profil créé avec succès depuis user_metadata');
+      AppLogger.d('✅ Profil créé avec succès depuis user_metadata');
       return app_user.User.fromJson(profileData);
     } catch (e) {
-      print('❌ Erreur lors de la création du profil depuis metadata: $e');
+      AppLogger.e('❌ Erreur lors de la création du profil depuis metadata: $e');
       return null;
     }
   }
@@ -248,16 +271,18 @@ class AuthRepository {
     try {
       await _supabase.auth.resetPasswordForEmail(email);
     } catch (e) {
-      throw Exception('Erreur lors de la réinitialisation: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la réinitialisation');
     }
   }
 
   /// Déconnexion
   Future<void> signOut() async {
     try {
-      // 1. Déconnecter Supabase EN PREMIER pour invalider la session immédiatement
-      await _supabase.auth.signOut();
-      print('✅ Session Supabase fermée');
+      // 1. Déconnecter Supabase EN PREMIER pour invalider la session
+      //    immédiatement. Passe par SupabaseService afin que le stockage
+      //    chiffré soit purgé dans la foulée (VUL-10).
+      await SupabaseService.instance.signOut();
+      AppLogger.d('Session Supabase fermée et stockage purgé');
 
       // 2. Déconnecter Google Sign-In localement (instantané)
       try {
@@ -268,53 +293,66 @@ class AuthRepository {
           await googleSignIn.signOut();
         }
       } catch (e) {
-        print('⚠️ Erreur déconnexion Google: $e');
+        AppLogger.w('⚠️ Erreur déconnexion Google: $e');
       }
 
       // 3. Déconnecter Facebook Auth si actif
       try {
         await FacebookAuth.instance.logOut();
       } catch (e) {
-        print('⚠️ Erreur déconnexion Facebook: $e');
+        AppLogger.w('⚠️ Erreur déconnexion Facebook: $e');
       }
 
-      print('✅ Déconnexion complète effectuée');
+      AppLogger.d('✅ Déconnexion complète effectuée');
     } catch (e) {
-      print('⚠️ Erreur lors de la déconnexion: $e');
+      AppLogger.w('⚠️ Erreur lors de la déconnexion: $e');
     }
   }
 
   /// Récupère le profil utilisateur depuis la base de données par supabase_id ou email
-  Future<app_user.User?> _getUserProfile(String supabaseId, {String? email}) async {
+  Future<app_user.User?> _getUserProfile(
+    String supabaseId, {
+    String? email,
+  }) async {
     try {
-      print('🔍 Recherche du profil pour supabase_id: $supabaseId ${email != null ? "ou email: $email" : ""}');
+      AppLogger.d(
+        '🔍 Recherche du profil pour supabase_id: $supabaseId ${email != null ? "ou email: $email" : ""}',
+      );
 
       // 1. Chercher d'abord par supabase_id
-      var response = await _supabase
-          .from(SupabaseConfig.usersTable)
-          .select('''
+      var response =
+          await _supabase
+                  .from(SupabaseConfig.usersTable)
+                  .select('''
             *,
             role:${SupabaseConfig.rolesTable}!role_id(id, libelle)
           ''')
-          .eq('supabase_id', supabaseId)
-          .eq('actif', 'OUI') as List<dynamic>;
+                  .eq('supabase_id', supabaseId)
+                  .eq('actif', 'OUI')
+              as List<dynamic>;
 
       // 2. Si non trouvé et email fourni, chercher par email
       if (response.isEmpty && email != null && email.isNotEmpty) {
-        print('🔍 Aucun profil trouvé avec supabase_id, recherche par email: $email');
-        response = await _supabase
-            .from(SupabaseConfig.usersTable)
-            .select('''
+        AppLogger.d(
+          '🔍 Aucun profil trouvé avec supabase_id, recherche par email: $email',
+        );
+        response =
+            await _supabase
+                    .from(SupabaseConfig.usersTable)
+                    .select('''
               *,
               role:${SupabaseConfig.rolesTable}!role_id(id, libelle)
             ''')
-            .eq('email', email)
-            .eq('actif', 'OUI') as List<dynamic>;
+                    .eq('email', email)
+                    .eq('actif', 'OUI')
+                as List<dynamic>;
 
         // Si le profil existe par email, on met à jour son supabase_id
         if (response.isNotEmpty) {
           final existingProfile = response.first as Map<String, dynamic>;
-          print('📝 Mise à jour du supabase_id pour l\'utilisateur existant #${existingProfile['id']}...');
+          AppLogger.d(
+            '📝 Mise à jour du supabase_id pour l\'utilisateur existant #${existingProfile['id']}...',
+          );
           await _supabase
               .from(SupabaseConfig.usersTable)
               .update({'supabase_id': supabaseId})
@@ -323,47 +361,51 @@ class AuthRepository {
         }
       }
 
-      print('🔍 Réponse brute: $response');
+      AppLogger.d('🔍 Réponse brute: $response');
 
       // Vérifier si la réponse contient des données
       if (response.isEmpty) {
-        print('⚠️ Aucun profil trouvé pour cet utilisateur');
+        AppLogger.w('⚠️ Aucun profil trouvé pour cet utilisateur');
         return null;
       }
 
       // Prendre le premier élément de la liste
       final profileData = response.first as Map<String, dynamic>;
-      print('✅ Profil trouvé: ${profileData['prenom']} ${profileData['nom']}');
+      AppLogger.d(
+        '✅ Profil trouvé: ${profileData['prenom']} ${profileData['nom']}',
+      );
 
       return app_user.User.fromJson(profileData);
     } catch (e) {
       // Si le profil n'existe pas encore
-      print('⚠️ Erreur lors de la recherche du profil: $e');
+      AppLogger.w('⚠️ Erreur lors de la recherche du profil: $e');
       return null;
     }
   }
 
   /// Récupère l'utilisateur actuellement connecté
   Future<app_user.User?> getCurrentUser() async {
-    print('🔍 AuthRepository.getCurrentUser: Vérification session Supabase...');
+    AppLogger.d(
+      '🔍 AuthRepository.getCurrentUser: Vérification session Supabase...',
+    );
     final user = _supabase.auth.currentUser;
 
     if (user == null) {
-      print('⚠️ AuthRepository.getCurrentUser: Aucune session Supabase active');
+      AppLogger.w(
+        '⚠️ AuthRepository.getCurrentUser: Aucune session Supabase active',
+      );
       return null;
     }
 
-    print(
+    AppLogger.d(
       '✅ AuthRepository.getCurrentUser: Session trouvée pour user ID: ${user.id}',
     );
     final profile = await _getUserProfile(user.id);
 
     if (profile != null) {
-      print(
-        '✅ AuthRepository.getCurrentUser: Profil récupéré: ${profile.fullName}',
-      );
+      AppLogger.d('AuthRepository.getCurrentUser: profil récupéré');
     } else {
-      print(
+      AppLogger.w(
         '⚠️ AuthRepository.getCurrentUser: Profil non trouvé dans la table users',
       );
     }
@@ -384,7 +426,9 @@ class AuthRepository {
     List<String>? passions,
   }) async {
     try {
-      print('📝 AuthRepository.updateUserProfile: ID=#$userId, photo=$photo');
+      AppLogger.d(
+        '📝 AuthRepository.updateUserProfile: ID=#$userId, photo=$photo',
+      );
       final updates = <String, dynamic>{};
       if (nom != null) updates['nom'] = nom;
       if (prenom != null) updates['prenom'] = prenom;
@@ -406,12 +450,18 @@ class AuthRepository {
           ''')
           .single();
 
-      print('✅ AuthRepository.updateUserProfile: Profil mis à jour en BDD avec succès!');
+      AppLogger.d(
+        '✅ AuthRepository.updateUserProfile: Profil mis à jour en BDD avec succès!',
+      );
       return app_user.User.fromJson(response);
     } catch (e, stackTrace) {
-      print('❌ AuthRepository.updateUserProfile ERREUR BDD: $e');
-      print('❌ StackTrace: $stackTrace');
-      throw Exception('Erreur lors de la mise à jour BDD (users.photo): $e');
+      AppLogger.e('❌ AuthRepository.updateUserProfile ERREUR BDD: $e');
+      AppLogger.e('❌ StackTrace: $stackTrace');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la mise à jour BDD (users.photo)',
+      );
     }
   }
 
@@ -420,7 +470,11 @@ class AuthRepository {
     try {
       await _supabase.auth.updateUser(UserAttributes(password: newPassword));
     } catch (e) {
-      throw Exception('Erreur lors du changement de mot de passe: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'changement de mot de passe',
+      );
     }
   }
 
@@ -441,37 +495,39 @@ class AuthRepository {
 
   Future<GoogleAuthResult?> signInWithGoogle() async {
     try {
-      print('🔵 AuthRepository: Début authentification Google...');
-      print('🔍 DEBUG: Web Client ID = ${SupabaseConfig.googleClientId}');
-      print(
+      AppLogger.d('🔵 AuthRepository: Début authentification Google...');
+      AppLogger.d('🔍 DEBUG: Web Client ID = ${SupabaseConfig.googleClientId}');
+      AppLogger.d(
         '🔍 DEBUG: Android Client ID = ${SupabaseConfig.googleAndroidClientId}',
       );
 
       // 1. Initialiser Google Sign In
-      print('🔍 DEBUG: Initialisation GoogleSignIn...');
+      AppLogger.d('🔍 DEBUG: Initialisation GoogleSignIn...');
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: SupabaseConfig.googleClientId,
         scopes: ['email', 'profile', 'openid'],
       );
-      print('✅ DEBUG: GoogleSignIn initialisé avec Web Client ID');
+      AppLogger.d('✅ DEBUG: GoogleSignIn initialisé avec Web Client ID');
 
       // 2. Connexion Google
-      print('🔍 DEBUG: Appel googleSignIn.signIn()...');
+      AppLogger.d('🔍 DEBUG: Appel googleSignIn.signIn()...');
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        print('⚠️ AuthRepository: Connexion Google annulée par l\'utilisateur');
+        AppLogger.w(
+          '⚠️ AuthRepository: Connexion Google annulée par l\'utilisateur',
+        );
         return null;
       }
 
-      print(
+      AppLogger.d(
         '✅ AuthRepository: Utilisateur Google sélectionné: ${googleUser.email}',
       );
-      print('🔍 DEBUG: displayName = ${googleUser.displayName}');
-      print('🔍 DEBUG: photoUrl = ${googleUser.photoUrl}');
+      AppLogger.d('🔍 DEBUG: displayName = ${googleUser.displayName}');
+      AppLogger.d('🔍 DEBUG: photoUrl = ${googleUser.photoUrl}');
 
       // 3. Récupérer les tokens
-      print('🔍 DEBUG: Récupération des tokens Google...');
+      AppLogger.d('🔍 DEBUG: Récupération des tokens Google...');
       try {
         final GoogleSignInAuthentication googleAuth =
             await googleUser.authentication;
@@ -479,20 +535,22 @@ class AuthRepository {
         final String? accessToken = googleAuth.accessToken;
         final String? idToken = googleAuth.idToken;
 
-        print('🔍 DEBUG: accessToken présent: ${accessToken != null}');
-        print('🔍 DEBUG: idToken présent: ${idToken != null}');
+        AppLogger.d('🔍 DEBUG: accessToken présent: ${accessToken != null}');
+        AppLogger.d('🔍 DEBUG: idToken présent: ${idToken != null}');
 
         if (accessToken == null || idToken == null) {
-          print(
-            '❌ DEBUG: Tokens manquants - accessToken: $accessToken, idToken: $idToken',
-          );
+          // Les jetons eux-mêmes ne sont jamais journalisés (VUL-08).
+          AppLogger.e('Jetons Google manquants', {
+            'accessToken': accessToken != null,
+            'idToken': idToken != null,
+          });
           throw Exception('Impossible de récupérer les tokens Google');
         }
 
-        print('✅ AuthRepository: Tokens Google récupérés avec succès');
+        AppLogger.d('✅ AuthRepository: Tokens Google récupérés avec succès');
 
         // 4. Authentification avec Supabase
-        print('🔍 DEBUG: Envoi des tokens à Supabase...');
+        AppLogger.d('🔍 DEBUG: Envoi des tokens à Supabase...');
         final AuthResponse response = await _supabase.auth.signInWithIdToken(
           provider: OAuthProvider.google,
           idToken: idToken,
@@ -500,37 +558,42 @@ class AuthRepository {
         );
 
         if (response.user == null) {
-          print('❌ DEBUG: Aucun utilisateur dans la réponse Supabase');
+          AppLogger.e('❌ DEBUG: Aucun utilisateur dans la réponse Supabase');
           throw Exception('Erreur lors de l\'authentification Supabase');
         }
 
-        print('✅ AuthRepository: Authentification Supabase réussie');
+        AppLogger.d('✅ AuthRepository: Authentification Supabase réussie');
 
         // 5. Vérifier/Créer le profil utilisateur
-        print('🔍 DEBUG: Récupération du profil utilisateur...');
+        AppLogger.d('🔍 DEBUG: Récupération du profil utilisateur...');
         app_user.User? user = await _getUserProfile(
           response.user!.id,
           email: googleUser.email,
         );
 
         if (user == null) {
-          print('📝 AuthRepository: Profil non trouvé -> Nouvel utilisateur Google');
+          AppLogger.d(
+            '📝 AuthRepository: Profil non trouvé -> Nouvel utilisateur Google',
+          );
 
           final String metaGivenName =
-              (response.user?.userMetadata?['given_name'] as String? ?? '').trim();
+              (response.user?.userMetadata?['given_name'] as String? ?? '')
+                  .trim();
           final String metaFamilyName =
-              (response.user?.userMetadata?['family_name'] as String? ?? '').trim();
+              (response.user?.userMetadata?['family_name'] as String? ?? '')
+                  .trim();
 
           String prenom = metaGivenName;
           String nom = metaFamilyName;
 
           if (prenom.isEmpty || nom.isEmpty) {
-            final String fullName = (googleUser.displayName ??
-                    response.user?.userMetadata?['full_name'] ??
-                    response.user?.userMetadata?['name'] ??
-                    '')
-                .toString()
-                .trim();
+            final String fullName =
+                (googleUser.displayName ??
+                        response.user?.userMetadata?['full_name'] ??
+                        response.user?.userMetadata?['name'] ??
+                        '')
+                    .toString()
+                    .trim();
 
             if (fullName.isNotEmpty) {
               final List<String> nameParts = fullName.split(RegExp(r'\s+'));
@@ -548,42 +611,39 @@ class AuthRepository {
           if (prenom.isEmpty) prenom = 'Utilisateur';
           if (nom.isEmpty) nom = prenom;
 
-          print('👤 Données Google extraites - Prénom: "$prenom", Nom: "$nom"');
-
           return GoogleAuthResult(
             isNewUser: true,
             supabaseId: response.user!.id,
             email: googleUser.email,
             nom: nom,
             prenom: prenom,
-            photo: googleUser.photoUrl ?? response.user?.userMetadata?['avatar_url'],
+            photo:
+                googleUser.photoUrl ??
+                response.user?.userMetadata?['avatar_url'],
           );
         } else {
-          print('✅ DEBUG: Profil existant trouvé: ${user.fullName}');
-          return GoogleAuthResult(
-            user: user,
-            isNewUser: false,
-          );
+          AppLogger.d('Profil existant trouvé');
+          return GoogleAuthResult(user: user, isNewUser: false);
         }
       } catch (tokenError) {
-        print(
+        AppLogger.e(
           '❌ DEBUG: Erreur lors de la récupération des tokens: $tokenError',
         );
-        print('❌ DEBUG: Type d\'erreur: ${tokenError.runtimeType}');
+        AppLogger.e('❌ DEBUG: Type d\'erreur: ${tokenError.runtimeType}');
         rethrow;
       }
     } catch (e, stackTrace) {
-      print('❌ AuthRepository: Erreur Google - $e');
-      print('❌ DEBUG: Type d\'erreur: ${e.runtimeType}');
-      print('❌ DEBUG: StackTrace: $stackTrace');
-      throw Exception('Erreur lors de la connexion Google: $e');
+      AppLogger.e('❌ AuthRepository: Erreur Google - $e');
+      AppLogger.e('❌ DEBUG: Type d\'erreur: ${e.runtimeType}');
+      AppLogger.e('❌ DEBUG: StackTrace: $stackTrace');
+      throw ErrorMapper.map(e, StackTrace.current, 'la connexion Google');
     }
   }
 
   /// Connexion avec Facebook
   Future<app_user.User?> signInWithFacebook() async {
     try {
-      print('🔵 AuthRepository: Début authentification Facebook...');
+      AppLogger.d('🔵 AuthRepository: Début authentification Facebook...');
 
       // 1. Connexion Facebook
       final LoginResult result = await FacebookAuth.instance.login(
@@ -591,7 +651,7 @@ class AuthRepository {
       );
 
       if (result.status != LoginStatus.success) {
-        print('⚠️ AuthRepository: Connexion Facebook annulée ou échouée');
+        AppLogger.w('⚠️ AuthRepository: Connexion Facebook annulée ou échouée');
         return null;
       }
 
@@ -600,11 +660,11 @@ class AuthRepository {
         throw Exception('Impossible de récupérer le token Facebook');
       }
 
-      print('✅ AuthRepository: Token Facebook récupéré');
+      AppLogger.d('✅ AuthRepository: Token Facebook récupéré');
 
       // 2. Récupérer les données utilisateur Facebook
       final userData = await FacebookAuth.instance.getUserData();
-      print('✅ AuthRepository: Données Facebook: ${userData['email']}');
+      AppLogger.d('✅ AuthRepository: Données Facebook: ${userData['email']}');
 
       // 3. Authentification avec Supabase
       final AuthResponse response = await _supabase.auth.signInWithIdToken(
@@ -616,13 +676,13 @@ class AuthRepository {
         throw Exception('Erreur lors de l\'authentification Supabase');
       }
 
-      print('✅ AuthRepository: Authentification Supabase réussie');
+      AppLogger.d('✅ AuthRepository: Authentification Supabase réussie');
 
       // 4. Vérifier/Créer le profil utilisateur
       app_user.User? user = await _getUserProfile(response.user!.id);
 
       if (user == null) {
-        print('📝 AuthRepository: Création du profil utilisateur...');
+        AppLogger.d('📝 AuthRepository: Création du profil utilisateur...');
 
         // Séparer le nom complet en prénom et nom
         final String fullName = userData['name'] ?? '';
@@ -641,11 +701,11 @@ class AuthRepository {
         );
       }
 
-      print('✅ AuthRepository: Profil utilisateur prêt');
+      AppLogger.d('✅ AuthRepository: Profil utilisateur prêt');
       return user;
     } catch (e) {
-      print('❌ AuthRepository: Erreur Facebook - $e');
-      throw Exception('Erreur lors de la connexion Facebook: $e');
+      AppLogger.e('❌ AuthRepository: Erreur Facebook - $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la connexion Facebook');
     }
   }
 
@@ -694,8 +754,8 @@ class AuthRepository {
 
       return app_user.User.fromJson(userProfile);
     } catch (e) {
-      print('❌ AuthRepository: Erreur création profil OAuth - $e');
-      throw Exception('Erreur lors de la création du profil: $e');
+      AppLogger.e('❌ AuthRepository: Erreur création profil OAuth - $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la création du profil');
     }
   }
 }

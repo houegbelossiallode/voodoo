@@ -41,7 +41,7 @@ class EquipementsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.greyLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grey.withOpacity(0.2)),
+        border: Border.all(color: AppColors.grey.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -9,10 +9,8 @@ final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
 });
 
 /// Provider pour récupérer les réservations d'un utilisateur
-final myReservationsProvider = FutureProvider.family<List<Reservation>, int>((
-  ref,
-  userId,
-) async {
-  final repository = ref.watch(reservationRepositoryProvider);
-  return await repository.getUserReservations(userId);
-});
+final myReservationsProvider = FutureProvider.autoDispose
+    .family<List<Reservation>, int>((ref, userId) async {
+      final repository = ref.watch(reservationRepositoryProvider);
+      return await repository.getUserReservations(userId);
+    });

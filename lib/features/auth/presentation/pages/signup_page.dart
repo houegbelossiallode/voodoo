@@ -10,10 +10,11 @@ import 'package:vodou/features/auth/presentation/providers/role_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/first_time_visitor_provider.dart';
 import 'package:vodou/features/auth/presentation/widgets/google_role_selection_dialog.dart';
 import 'package:vodou/features/auth/domain/models/role.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Page d'inscription avec email et mot de passe
 class SignUpPage extends ConsumerStatefulWidget {
-  const SignUpPage({Key? key}) : super(key: key);
+  const SignUpPage({super.key});
 
   @override
   ConsumerState<SignUpPage> createState() => _SignUpPageState();
@@ -51,13 +52,13 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     final user = userAsync.value;
 
     if (user == null) {
-      print('⚠️ Utilisateur non trouvé après inscription');
+      AppLogger.w('⚠️ Utilisateur non trouvé après inscription');
       context.go(AppRouter.festivalSelection, extra: true);
       return;
     }
 
     final userRole = user.role?.toLowerCase() ?? '';
-    print('👤 Rôle utilisateur: $userRole');
+    AppLogger.d('👤 Rôle utilisateur: $userRole');
 
     if (userRole == 'visiteur') {
       context.go(AppRouter.festivalSelection, extra: true);
@@ -66,11 +67,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     }
   }
 
+  // TODO(auth): aucun bouton de cet écran n'appelle cette méthode — le parcours
+  // Google n'est câblé que dans login_page.dart. Soit brancher un bouton
+  // « S'inscrire avec Google », soit supprimer cette méthode.
+  // ignore: unused_element
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      final result =
-          await ref.read(currentUserProvider.notifier).signInWithGoogle();
+      final result = await ref
+          .read(currentUserProvider.notifier)
+          .signInWithGoogle();
 
       if (result == null) return;
 
@@ -90,7 +96,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
             }
 
-            await ref.read(currentUserProvider.notifier).completeOAuthProfile(
+            await ref
+                .read(currentUserProvider.notifier)
+                .completeOAuthProfile(
                   supabaseId: result.supabaseId!,
                   email: result.email!,
                   nom: result.nom!,
@@ -112,7 +120,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         }
       }
     } catch (e) {
-      print('❌ Erreur Google: $e');
+      AppLogger.e('❌ Erreur Google: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -201,13 +209,13 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     setState(() => _isLoading = true);
 
     try {
-      print('📝 Début de l\'inscription...');
+      AppLogger.d('📝 Début de l\'inscription...');
 
       // Marquer si c'est un visiteur pour le questionnaire
       final isVisitor = _selectedRole!.libelle.toLowerCase() == 'visiteur';
       if (isVisitor) {
         ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
-        print('🎯 Marqué comme nouveau visiteur pour questionnaire');
+        AppLogger.d('🎯 Marqué comme nouveau visiteur pour questionnaire');
       }
 
       await ref
@@ -223,7 +231,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             langue: ['fr'],
           );
 
-      print('✅ Inscription réussie!');
+      AppLogger.d('✅ Inscription réussie!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -250,8 +258,11 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         );
 
         // Rediriger vers la page de confirmation email
-        print('🔄 Redirection vers la page de confirmation email...');
-        context.go(AppRouter.emailConfirmation, extra: _emailController.text.trim());
+        AppLogger.d('🔄 Redirection vers la page de confirmation email...');
+        context.go(
+          AppRouter.emailConfirmation,
+          extra: _emailController.text.trim(),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -421,7 +432,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     return rolesAsync.when(
                       data: (roles) {
                         return DropdownButtonFormField<Role>(
-                          value: _selectedRole,
+                          initialValue: _selectedRole,
                           decoration: InputDecoration(
                             labelText: 'Rôle *',
                             hintText: 'Sélectionnez votre rôle',
@@ -433,17 +444,21 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                             fillColor: Colors.grey[50],
                           ),
                           items: roles
-                              .where((role) =>
-                                  !role.libelle.toLowerCase().contains('admin'))
+                              .where(
+                                (role) => !role.libelle.toLowerCase().contains(
+                                  'admin',
+                                ),
+                              )
                               .map((role) {
-                            return DropdownMenuItem<Role>(
-                              value: role,
-                              child: Text(
-                                role.libelle,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }).toList(),
+                                return DropdownMenuItem<Role>(
+                                  value: role,
+                                  child: Text(
+                                    role.libelle,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              })
+                              .toList(),
                           onChanged: (Role? newValue) {
                             setState(() {
                               _selectedRole = newValue;

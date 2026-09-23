@@ -15,41 +15,36 @@ final accommodationDetailsRepositoryProvider =
     });
 
 /// Provider pour les détails complets d'un logement
-final logementDetailsProvider = FutureProvider.family<Logement, int>((
-  ref,
-  logementId,
-) async {
-  final repository = ref.watch(accommodationDetailsRepositoryProvider);
-  return repository.getLogementDetails(logementId);
-});
+final logementDetailsProvider = FutureProvider.autoDispose
+    .family<Logement, int>((ref, logementId) async {
+      final repository = ref.watch(accommodationDetailsRepositoryProvider);
+      return repository.getLogementDetails(logementId);
+    });
 
 /// Provider pour les divinités d'un logement
-final logementDivinitesProvider = FutureProvider.family<List<Divinite>, int>((
-  ref,
-  logementId,
-) async {
-  final repository = ref.watch(accommodationDetailsRepositoryProvider);
-  return repository.getLogementDivinites(logementId);
-});
+final logementDivinitesProvider = FutureProvider.autoDispose
+    .family<List<Divinite>, int>((ref, logementId) async {
+      final repository = ref.watch(accommodationDetailsRepositoryProvider);
+      return repository.getLogementDivinites(logementId);
+    });
 
 /// Provider pour les équipements d'un logement
-final logementEquipementsProvider =
-    FutureProvider.family<List<Equipement>, int>((ref, logementId) async {
+final logementEquipementsProvider = FutureProvider.autoDispose
+    .family<List<Equipement>, int>((ref, logementId) async {
       final repository = ref.watch(accommodationDetailsRepositoryProvider);
       return repository.getLogementEquipements(logementId);
     });
 
 /// Provider pour les avis d'un logement
-final logementAvisProvider = FutureProvider.family<List<Avis>, int>((
-  ref,
-  logementId,
-) async {
-  final repository = ref.watch(accommodationDetailsRepositoryProvider);
-  return repository.getLogementAvis(logementId);
-});
+final logementAvisProvider = FutureProvider.autoDispose.family<List<Avis>, int>(
+  (ref, logementId) async {
+    final repository = ref.watch(accommodationDetailsRepositoryProvider);
+    return repository.getLogementAvis(logementId);
+  },
+);
 
 /// Provider pour les statistiques des avis
-final avisStatsProvider = FutureProvider.family<AvisStats, int>((
+final avisStatsProvider = FutureProvider.autoDispose.family<AvisStats, int>((
   ref,
   logementId,
 ) async {
@@ -58,7 +53,7 @@ final avisStatsProvider = FutureProvider.family<AvisStats, int>((
 });
 
 /// Provider pour les informations de l'hôte
-final hostInfoProvider = FutureProvider.family<HostInfo, int>((
+final hostInfoProvider = FutureProvider.autoDispose.family<HostInfo, int>((
   ref,
   userId,
 ) async {
@@ -67,10 +62,9 @@ final hostInfoProvider = FutureProvider.family<HostInfo, int>((
 });
 
 /// Provider pour les informations du quartier
-final quartierInfoProvider = FutureProvider.family<Map<String, dynamic>?, int?>(
-  (ref, quartierId) async {
-    if (quartierId == null) return null;
-    final repository = ref.watch(accommodationDetailsRepositoryProvider);
-    return repository.getQuartierInfo(quartierId);
-  },
-);
+final quartierInfoProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>?, int?>((ref, quartierId) async {
+      if (quartierId == null) return null;
+      final repository = ref.watch(accommodationDetailsRepositoryProvider);
+      return repository.getQuartierInfo(quartierId);
+    });

@@ -100,13 +100,13 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide(
-                    color: AppColors.grey.withOpacity(0.3),
+                    color: AppColors.grey.withValues(alpha: 0.3),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide(
-                    color: AppColors.grey.withOpacity(0.3),
+                    color: AppColors.grey.withValues(alpha: 0.3),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -118,7 +118,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                   vertical: 12,
                 ),
                 filled: true,
-                fillColor: AppColors.grey.withOpacity(0.05),
+                fillColor: AppColors.grey.withValues(alpha: 0.05),
               ),
               onChanged: (value) {
                 ref.read(conversationSearchProvider.notifier).state = value;
@@ -151,7 +151,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                             Icon(
                               Icons.chat_bubble_outline,
                               size: 80,
-                              color: AppColors.grey.withOpacity(0.5),
+                              color: AppColors.grey.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 16),
                             const Text(
@@ -165,7 +165,10 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                             const SizedBox(height: 8),
                             const Text(
                               'Contactez un hôte pour commencer',
-                              style: TextStyle(fontSize: 14, color: AppColors.grey),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.grey,
+                              ),
                             ),
                           ],
                         ),

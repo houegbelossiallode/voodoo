@@ -2,6 +2,8 @@ import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:vodou/features/search/domain/models/search_filters.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour la recherche de logements
 class SearchRepository {
@@ -12,7 +14,7 @@ class SearchRepository {
   /// Recherche des logements avec filtres
   Future<List<Logement>> searchLogements(SearchFilters filters) async {
     try {
-      print('🔍 Recherche avec filtres: $filters');
+      AppLogger.d('🔍 Recherche avec filtres: $filters');
 
       // Construire la requête de base
       var query = _supabaseService.client
@@ -125,11 +127,11 @@ class SearchRepository {
         );
       }
 
-      print('✅ ${logements.length} logements trouvés');
+      AppLogger.d('✅ ${logements.length} logements trouvés');
       return logements;
     } catch (e) {
-      print('❌ Erreur recherche: $e');
-      throw Exception('Erreur lors de la recherche: $e');
+      AppLogger.e('❌ Erreur recherche: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la recherche');
     }
   }
 
@@ -142,7 +144,7 @@ class SearchRepository {
   ) async {
     final availableLogements = <Logement>[];
 
-    print(
+    AppLogger.d(
       '🔍 Filtrage par dates: ${dateDebut.toIso8601String().split('T')[0]} → ${dateFin.toIso8601String().split('T')[0]}',
     );
 
@@ -157,7 +159,7 @@ class SearchRepository {
 
         final disponibilites = disponibilitesResponse as List;
 
-        print(
+        AppLogger.d(
           '   📋 Logement ${logement.id} (${logement.titre}): ${disponibilites.length} période(s) de disponibilité',
         );
 
@@ -182,8 +184,8 @@ class SearchRepository {
           );
           final reservFin = DateTime(dateFin.year, dateFin.month, dateFin.day);
 
-          print('      Période dispo: $dispoDebut → $dispoFin');
-          print('      Dates demandées: $reservDebut → $reservFin');
+          AppLogger.d('      Période dispo: $dispoDebut → $dispoFin');
+          AppLogger.d('      Dates demandées: $reservDebut → $reservFin');
 
           // Les dates de réservation doivent être complètement dans la période disponible
           // dateDebut >= dispoDebut ET dateFin <= dispoFin
@@ -194,25 +196,25 @@ class SearchRepository {
               reservFin.isAtSameMomentAs(dispoFin) ||
               reservFin.isBefore(dispoFin);
 
-          print('      Début OK: $debutOk (${reservDebut} >= ${dispoDebut})');
-          print('      Fin OK: $finOk (${reservFin} <= ${dispoFin})');
+          AppLogger.d('      Début OK: $debutOk ($reservDebut >= $dispoDebut)');
+          AppLogger.d('      Fin OK: $finOk ($reservFin <= $dispoFin)');
 
           if (debutOk && finOk) {
             isInAvailablePeriod = true;
-            print('      ✅ Période valide trouvée');
+            AppLogger.d('      ✅ Période valide trouvée');
             break;
           }
         }
 
         if (!isInAvailablePeriod) {
-          print(
+          AppLogger.e(
             '   ❌ Logement ${logement.id} (${logement.titre}): Aucune période de disponibilité ne couvre ces dates',
           );
           continue;
         }
 
         // 2. Vérifier s'il y a des réservations qui se chevauchent
-        print('   🔍 Vérification des réservations existantes...');
+        AppLogger.d('   🔍 Vérification des réservations existantes...');
         final dateDebutStr = dateDebut.toIso8601String().split('T')[0];
         final dateFinStr = dateFin.toIso8601String().split('T')[0];
 
@@ -225,30 +227,34 @@ class SearchRepository {
             .gte('date_fin', dateDebutStr);
 
         final reservations = reservationsResponse as List;
-        print('   📋 ${reservations.length} réservation(s) trouvée(s)');
+        AppLogger.d('   📋 ${reservations.length} réservation(s) trouvée(s)');
 
         if (reservations.isNotEmpty) {
           for (var res in reservations) {
-            print(
+            AppLogger.d(
               '      Réservation #${res['id']}: ${res['date_debut']} → ${res['date_fin']} (${res['statut']})',
             );
           }
-          print(
+          AppLogger.e(
             '   ❌ Logement ${logement.id} (${logement.titre}): Conflit avec ${reservations.length} réservation(s)',
           );
           continue;
         }
 
         // Si on arrive ici, le logement est disponible
-        print('   ✅ Logement ${logement.id} (${logement.titre}): DISPONIBLE');
+        AppLogger.d(
+          '   ✅ Logement ${logement.id} (${logement.titre}): DISPONIBLE',
+        );
         availableLogements.add(logement);
       } catch (e) {
-        print('⚠️ Erreur vérification dispo pour logement ${logement.id}: $e');
+        AppLogger.w(
+          '⚠️ Erreur vérification dispo pour logement ${logement.id}: $e',
+        );
         // En cas d'erreur, on n'inclut PAS le logement pour éviter les fausses disponibilités
       }
     }
 
-    print(
+    AppLogger.d(
       '📊 Résultat: ${availableLogements.length}/${logements.length} logements disponibles',
     );
     return availableLogements;
@@ -290,7 +296,7 @@ class SearchRepository {
 
       return suggestions;
     } catch (e) {
-      print('❌ Erreur suggestions: $e');
+      AppLogger.e('❌ Erreur suggestions: $e');
       return [];
     }
   }
@@ -305,7 +311,7 @@ class SearchRepository {
 
       return (response as List).map((q) => q as Map<String, dynamic>).toList();
     } catch (e) {
-      print('❌ Erreur quartiers: $e');
+      AppLogger.e('❌ Erreur quartiers: $e');
       return [];
     }
   }

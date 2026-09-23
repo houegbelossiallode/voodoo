@@ -44,8 +44,9 @@ class Projet {
       categorieLibelle: json['categorie'] is Map
           ? (json['categorie'] as Map<String, dynamic>)['libelle'] as String?
           : (json['categories'] is Map
-              ? (json['categories'] as Map<String, dynamic>)['libelle'] as String?
-              : null),
+                ? (json['categories'] as Map<String, dynamic>)['libelle']
+                      as String?
+                : null),
       actif: json['actif'] as String? ?? 'OUI',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)

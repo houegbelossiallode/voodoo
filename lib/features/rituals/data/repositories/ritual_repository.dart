@@ -1,5 +1,6 @@
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/rituals/domain/models/ritual.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Repository pour gérer les rituels vaudou
 class RitualRepository {
@@ -10,7 +11,7 @@ class RitualRepository {
   /// Récupère tous les rituels disponibles
   Future<List<Ritual>> getAllRituals() async {
     try {
-      print('🔍 Récupération de tous les rituels');
+      AppLogger.d('🔍 Récupération de tous les rituels');
 
       final response = await _supabaseService.client
           .from('rituels')
@@ -22,10 +23,10 @@ class RitualRepository {
         return Ritual.fromJson(json);
       }).toList();
 
-      print('✅ ${rituals.length} rituels récupérés');
+      AppLogger.d('✅ ${rituals.length} rituels récupérés');
       return rituals;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des rituels: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des rituels: $e');
       return [];
     }
   }
@@ -33,7 +34,7 @@ class RitualRepository {
   /// Récupère les rituels d'un logement spécifique
   Future<List<Ritual>> getLogementRituals(int logementId) async {
     try {
-      print('🔍 Récupération des rituels du logement $logementId');
+      AppLogger.d('🔍 Récupération des rituels du logement $logementId');
 
       final response = await _supabaseService.client
           .from('rituel_logement')
@@ -50,10 +51,12 @@ class RitualRepository {
           })
           .toList();
 
-      print('✅ ${rituals.length} rituels récupérés pour le logement');
+      AppLogger.d('✅ ${rituals.length} rituels récupérés pour le logement');
       return rituals;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des rituels du logement: $e');
+      AppLogger.e(
+        '❌ Erreur lors de la récupération des rituels du logement: $e',
+      );
       return [];
     }
   }
@@ -61,7 +64,7 @@ class RitualRepository {
   /// Récupère les détails d'un rituel spécifique
   Future<Ritual?> getRitualById(int ritualId) async {
     try {
-      print('🔍 Récupération du rituel $ritualId');
+      AppLogger.d('🔍 Récupération du rituel $ritualId');
 
       final response = await _supabaseService.client
           .from('rituels')
@@ -69,10 +72,10 @@ class RitualRepository {
           .eq('id', ritualId)
           .single();
 
-      print('✅ Rituel récupéré');
+      AppLogger.d('✅ Rituel récupéré');
       return Ritual.fromJson(response);
     } catch (e) {
-      print('❌ Erreur lors de la récupération du rituel: $e');
+      AppLogger.e('❌ Erreur lors de la récupération du rituel: $e');
       return null;
     }
   }
@@ -81,29 +84,48 @@ class RitualRepository {
   /// Note: La table rituels n'a pas de relation avec divinites dans le schéma actuel
   Future<List<Ritual>> getRitualsByDivinite(int diviniteId) async {
     try {
-      print('🔍 Récupération des rituels de la divinité $diviniteId');
+      AppLogger.d('🔍 Récupération des rituels de la divinité $diviniteId');
 
       // Cette fonctionnalité nécessite une table de liaison rituel_divinite
       // Pour l'instant, retourne une liste vide
-      print(
+      AppLogger.w(
         '⚠️ Fonctionnalité non disponible: pas de relation rituel-divinité',
       );
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des rituels de la divinité: $e');
+      AppLogger.e(
+        '❌ Erreur lors de la récupération des rituels de la divinité: $e',
+      );
       return [];
     }
+  }
+
+  /// Neutralise les métacaractères d'une expression de filtre PostgREST.
+  ///
+  /// Dans une chaîne passée à `.or(...)`, les caractères `,`, `(`, `)` et `.`
+  /// sont structurants : une saisie utilisateur contenant par exemple
+  /// `,id.gt.0` permet de sortir de l'expression prévue et de réécrire la
+  /// clause `WHERE` (cf. AUDIT_SECURITE.md — VUL-07). Les jokers `%` et `_`
+  /// sont également échappés pour que la recherche reste littérale.
+  static String _sanitizeFilterValue(String input) {
+    return input.replaceAll(RegExp(r'[,()\.%_\\"]'), ' ').trim();
   }
 
   /// Recherche des rituels par mot-clé
   Future<List<Ritual>> searchRituals(String query) async {
     try {
-      print('🔍 Recherche de rituels: $query');
+      AppLogger.d('Recherche de rituels');
 
+      final safeQuery = _sanitizeFilterValue(query);
+      if (safeQuery.isEmpty) return [];
+
+      // TODO(sécurité): remplacer ce filtre construit à la main par un appel
+      // RPC `search_rituels(p_query text)` — paramètre typé, aucune
+      // interpolation dans l'expression de filtre.
       final response = await _supabaseService.client
           .from('rituels')
           .select('*')
-          .or('titre.ilike.%$query%,description.ilike.%$query%')
+          .or('titre.ilike.%$safeQuery%,description.ilike.%$safeQuery%')
           .eq('actif', 'OUI')
           .order('titre', ascending: true);
 
@@ -111,10 +133,10 @@ class RitualRepository {
         return Ritual.fromJson(json);
       }).toList();
 
-      print('✅ ${rituals.length} rituels trouvés');
+      AppLogger.d('✅ ${rituals.length} rituels trouvés');
       return rituals;
     } catch (e) {
-      print('❌ Erreur lors de la recherche de rituels: $e');
+      AppLogger.e('❌ Erreur lors de la recherche de rituels: $e');
       return [];
     }
   }
@@ -123,7 +145,7 @@ class RitualRepository {
   /// Note: La table rituels n'a pas de colonne 'disponible' dans le schéma actuel
   Future<List<Ritual>> getAvailableRituals() async {
     try {
-      print('🔍 Récupération des rituels disponibles');
+      AppLogger.d('🔍 Récupération des rituels disponibles');
 
       final response = await _supabaseService.client
           .from('rituels')
@@ -135,10 +157,12 @@ class RitualRepository {
         return Ritual.fromJson(json);
       }).toList();
 
-      print('✅ ${rituals.length} rituels disponibles');
+      AppLogger.d('✅ ${rituals.length} rituels disponibles');
       return rituals;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des rituels disponibles: $e');
+      AppLogger.e(
+        '❌ Erreur lors de la récupération des rituels disponibles: $e',
+      );
       return [];
     }
   }

@@ -5,7 +5,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/core/config/supabase_config.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Service pour gérer l'upload de fichiers vers Supabase Storage
 class FileUploadService {
@@ -15,11 +17,31 @@ class FileUploadService {
 
   FileUploadService(this._supabaseService);
 
+  /// Largeur/hauteur maximale des images téléversées, en pixels.
+  ///
+  /// Sans cette borne, une photo 12 Mpx (~8 Mo) était envoyée telle quelle.
+  static const int _maxImageDimension = 1920;
+
+  /// Qualité de recompression JPEG appliquée à la sélection.
+  static const int _imageQuality = 85;
+
+  /// Extensions d'image acceptées au téléversement.
+  static const Set<String> _allowedImageExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'gif',
+  };
+
   /// Sélectionner une image depuis la galerie
   Future<File?> pickImageFromGallery() async {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: _maxImageDimension.toDouble(),
+        maxHeight: _maxImageDimension.toDouble(),
+        imageQuality: _imageQuality,
       );
 
       if (image != null) {
@@ -27,7 +49,7 @@ class FileUploadService {
       }
       return null;
     } catch (e) {
-      throw Exception('Erreur lors de la sélection de l\'image: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la sélection de l\'image');
     }
   }
 
@@ -36,6 +58,9 @@ class FileUploadService {
     try {
       final XFile? photo = await _imagePicker.pickImage(
         source: ImageSource.camera,
+        maxWidth: _maxImageDimension.toDouble(),
+        maxHeight: _maxImageDimension.toDouble(),
+        imageQuality: _imageQuality,
       );
 
       if (photo != null) {
@@ -43,7 +68,7 @@ class FileUploadService {
       }
       return null;
     } catch (e) {
-      throw Exception('Erreur lors de la prise de photo: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la prise de photo');
     }
   }
 
@@ -60,7 +85,7 @@ class FileUploadService {
       }
       return null;
     } catch (e) {
-      throw Exception('Erreur lors de la sélection du fichier: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la sélection du fichier');
     }
   }
 
@@ -77,11 +102,33 @@ class FileUploadService {
     final File actualFile = File(cleanPath);
 
     if (!await actualFile.exists()) {
-      throw Exception('Le fichier image n\'existe pas sur l\'appareil ($cleanPath)');
+      throw Exception(
+        'Le fichier image n\'existe pas sur l\'appareil ($cleanPath)',
+      );
+    }
+
+    // Contrôle de taille : la constante maxUploadSizeMB était définie mais
+    // jamais appliquée, et readAsBytes() charge tout le fichier en mémoire
+    // (cf. AUDIT_SECURITE.md — VUL-09).
+    const int maxBytes = SupabaseConfig.maxUploadSizeMB * 1024 * 1024;
+    final int fileSize = await actualFile.length();
+    if (fileSize > maxBytes) {
+      throw Exception(
+        'Fichier trop volumineux (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} Mo). '
+        'La taille maximale autorisée est de ${SupabaseConfig.maxUploadSizeMB} Mo.',
+      );
     }
 
     final String rawExtension = actualFile.path.split('.').last.toLowerCase();
     final String fileExtension = rawExtension.split('?').first;
+
+    if (!_allowedImageExtensions.contains(fileExtension)) {
+      throw Exception(
+        'Format d\'image non pris en charge : .$fileExtension. '
+        'Formats acceptés : ${_allowedImageExtensions.join(', ')}.',
+      );
+    }
+
     final String fileName = '${_uuid.v4()}.$fileExtension';
     final String filePath = folder != null ? '$folder/$fileName' : fileName;
 
@@ -94,44 +141,35 @@ class FileUploadService {
 
     final bytes = await actualFile.readAsBytes();
 
-    debugPrint('🚀 Envoi vers Supabase Storage: bucket="$bucket", path="$filePath", size=${bytes.length} bytes');
+    debugPrint(
+      '🚀 Envoi vers Supabase Storage: bucket="$bucket", path="$filePath", size=${bytes.length} bytes',
+    );
 
-    String targetBucket = bucket;
+    // Le repli silencieux vers le bucket « logements » a été supprimé : une
+    // photo de profil pouvait atterrir dans le mauvais bucket sans qu'aucune
+    // alerte ne remonte (cf. AUDIT_SECURITE.md — VUL-09). Un échec d'upload
+    // doit désormais remonter à l'appelant.
     try {
-      await _supabaseService.client.storage.from(targetBucket).uploadBinary(
+      await _supabaseService.client.storage
+          .from(bucket)
+          .uploadBinary(
             filePath,
             bytes,
-            fileOptions: FileOptions(
-              contentType: contentType,
-              upsert: true,
-            ),
+            fileOptions: FileOptions(contentType: contentType, upsert: true),
           );
     } catch (storageErr) {
-      debugPrint('⚠️ Échec bucket "$targetBucket": $storageErr. Tentative avec bucket "logements"...');
-      try {
-        targetBucket = 'logements';
-        await _supabaseService.client.storage.from(targetBucket).uploadBinary(
-              filePath,
-              bytes,
-              fileOptions: FileOptions(
-                contentType: contentType,
-                upsert: true,
-              ),
-            );
-      } catch (fallbackErr) {
-        debugPrint('❌ Échec des deux buckets Supabase Storage ($bucket / logements): $storageErr / $fallbackErr');
-        throw Exception(
-          'Échec upload Supabase Storage ($bucket): $storageErr',
-        );
-      }
+      AppLogger.e('Échec du téléversement', storageErr);
+      throw Exception(
+        'Le téléversement a échoué. Vérifiez votre connexion et réessayez.',
+      );
     }
 
     // Récupérer l'URL publique
     final String publicUrl = _supabaseService.client.storage
-        .from(targetBucket)
+        .from(bucket)
         .getPublicUrl(filePath);
 
-    debugPrint('✅ Photo téléversée avec succès sur Supabase ($targetBucket): $publicUrl');
+    AppLogger.d('Fichier téléversé', {'bucket': bucket});
     return publicUrl;
   }
 
@@ -152,7 +190,7 @@ class FileUploadService {
     try {
       await _supabaseService.client.storage.from(bucket).remove([filePath]);
     } catch (e) {
-      throw Exception('Erreur lors de la suppression du fichier: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la suppression du fichier');
     }
   }
 
@@ -177,7 +215,9 @@ class FileUploadService {
       }
 
       if (filePath.isNotEmpty) {
-        debugPrint('🗑️ Suppression du fichier Supabase Storage: bucket="$bucket", path="$filePath"');
+        debugPrint(
+          '🗑️ Suppression du fichier Supabase Storage: bucket="$bucket", path="$filePath"',
+        );
         await _supabaseService.client.storage.from(bucket).remove([filePath]);
         debugPrint('✅ Fichier supprimé du Storage Supabase!');
       }

@@ -69,7 +69,7 @@ class _PhoneAuthPageState extends State<PhoneAuthPage> {
 
                 // Country Code Selector
                 DropdownButtonFormField<String>(
-                  value: _selectedCountryCode,
+                  initialValue: _selectedCountryCode,
                   decoration: const InputDecoration(
                     labelText: 'Pays',
                     prefixIcon: Icon(Icons.flag),

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/accommodation/domain/models/logement.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les logements avec Supabase
 class AccommodationRepository {
@@ -28,7 +29,11 @@ class AccommodationRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des logements: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements',
+      );
     }
   }
 
@@ -58,7 +63,11 @@ class AccommodationRepository {
 
       return Logement.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération du logement: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération du logement',
+      );
     }
   }
 
@@ -112,7 +121,7 @@ class AccommodationRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la recherche: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la recherche');
     }
   }
 
@@ -134,7 +143,11 @@ class AccommodationRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des recommandations: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des recommandations',
+      );
     }
   }
 
@@ -176,7 +189,11 @@ class AccommodationRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération par divinité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération par divinité',
+      );
     }
   }
 
@@ -213,7 +230,11 @@ class AccommodationRepository {
 
       return (disponibilites as List).isEmpty;
     } catch (e) {
-      throw Exception('Erreur lors de la vérification de disponibilité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la vérification de disponibilité',
+      );
     }
   }
 }

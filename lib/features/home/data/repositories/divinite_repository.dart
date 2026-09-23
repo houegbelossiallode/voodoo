@@ -1,6 +1,7 @@
 import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/home/domain/models/divinite.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les divinités
 class DiviniteRepository {
@@ -20,7 +21,11 @@ class DiviniteRepository {
           .map((json) => Divinite.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des divinités: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des divinités',
+      );
     }
   }
 
@@ -33,9 +38,13 @@ class DiviniteRepository {
           .eq('id', id)
           .single();
 
-      return Divinite.fromJson(response as Map<String, dynamic>);
+      return Divinite.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération de la divinité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération de la divinité',
+      );
     }
   }
 
@@ -57,8 +66,10 @@ class DiviniteRepository {
           .map((json) => Divinite.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception(
-        'Erreur lors de la récupération des divinités du logement: $e',
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des divinités du logement',
       );
     }
   }

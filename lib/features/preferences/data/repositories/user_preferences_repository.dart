@@ -1,5 +1,7 @@
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les préférences utilisateur
 class UserPreferencesRepository {
@@ -20,7 +22,11 @@ class UserPreferencesRepository {
 
       return app_user.UserPreferences.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des préférences: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des préférences',
+      );
     }
   }
 
@@ -67,7 +73,11 @@ class UserPreferencesRepository {
         return app_user.UserPreferences.fromJson(response);
       }
     } catch (e) {
-      throw Exception('Erreur lors de la sauvegarde des préférences: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la sauvegarde des préférences',
+      );
     }
   }
 
@@ -89,7 +99,11 @@ class UserPreferencesRepository {
 
       return app_user.UserPreferences.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la mise à jour des divinités: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la mise à jour des divinités',
+      );
     }
   }
 
@@ -111,8 +125,10 @@ class UserPreferencesRepository {
 
       return app_user.UserPreferences.fromJson(response);
     } catch (e) {
-      throw Exception(
-        'Erreur lors de la mise à jour de la préférence rituel: $e',
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la mise à jour de la préférence rituel',
       );
     }
   }
@@ -135,7 +151,11 @@ class UserPreferencesRepository {
 
       return app_user.UserPreferences.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la mise à jour de la devise: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la mise à jour de la devise',
+      );
     }
   }
 
@@ -147,31 +167,37 @@ class UserPreferencesRepository {
           .delete()
           .eq('user_id', userId);
     } catch (e) {
-      throw Exception('Erreur lors de la suppression des préférences: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la suppression des préférences',
+      );
     }
   }
 
   /// Vérifie si l'utilisateur a complété le questionnaire
   Future<bool> hasCompletedQuestionnaire(int userId) async {
     try {
-      print('🔍 hasCompletedQuestionnaire - userId: $userId');
+      AppLogger.d('🔍 hasCompletedQuestionnaire - userId: $userId');
       final preferences = await getUserPreferences(userId);
-      print('   📦 preferences: $preferences');
+      AppLogger.d('   📦 preferences: $preferences');
 
       if (preferences == null) {
-        print('   ❌ Aucune préférence trouvée → hasCompleted = FALSE');
+        AppLogger.e('   ❌ Aucune préférence trouvée → hasCompleted = FALSE');
         return false;
       }
 
-      print('   📋 divinitesPreferees: ${preferences.divinitesPreferees}');
-      print('   📊 hasPreferences: ${preferences.hasPreferences}');
+      AppLogger.d(
+        '   📋 divinitesPreferees: ${preferences.divinitesPreferees}',
+      );
+      AppLogger.d('   📊 hasPreferences: ${preferences.hasPreferences}');
 
       final result = preferences.hasPreferences;
-      print('   ✅ Résultat final → hasCompleted = $result');
+      AppLogger.d('   ✅ Résultat final → hasCompleted = $result');
 
       return result;
     } catch (e) {
-      print('   ⚠️ Erreur dans hasCompletedQuestionnaire: $e');
+      AppLogger.w('   ⚠️ Erreur dans hasCompletedQuestionnaire: $e');
       return false;
     }
   }

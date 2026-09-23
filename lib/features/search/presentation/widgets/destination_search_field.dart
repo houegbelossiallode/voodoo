@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vodou/core/constants/app_colors.dart';
 import 'package:vodou/features/search/presentation/providers/search_provider.dart';
 
 /// Champ de recherche de destination avec suggestions
@@ -81,7 +80,7 @@ class _DestinationSearchFieldState
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/accommodation/domain/models/logement.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les logements avec Supabase
 class LogementRepository {
@@ -35,7 +36,11 @@ class LogementRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des logements: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements',
+      );
     }
   }
 
@@ -66,7 +71,11 @@ class LogementRepository {
 
       return Logement.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération du logement: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération du logement',
+      );
     }
   }
 
@@ -137,7 +146,7 @@ class LogementRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la recherche: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la recherche');
     }
   }
 
@@ -200,7 +209,11 @@ class LogementRepository {
 
       return (response as List).map((json) => Logement.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération par divinité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération par divinité',
+      );
     }
   }
 
@@ -237,7 +250,11 @@ class LogementRepository {
 
       return (disponibilites as List).isEmpty;
     } catch (e) {
-      throw Exception('Erreur lors de la vérification de disponibilité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la vérification de disponibilité',
+      );
     }
   }
 
@@ -258,7 +275,7 @@ class LogementRepository {
 
       return (response as List).cast<Map<String, dynamic>>();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des avis: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la récupération des avis');
     }
   }
 
@@ -281,7 +298,7 @@ class LogementRepository {
       );
       return total / avis.length;
     } catch (e) {
-      throw Exception('Erreur lors du calcul de la note moyenne: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'calcul de la note moyenne');
     }
   }
 }

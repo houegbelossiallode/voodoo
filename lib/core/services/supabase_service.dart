@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/core/config/supabase_config.dart';
+import 'package:vodou/core/services/secure_local_storage.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Service singleton pour gérer la connexion Supabase
 class SupabaseService {
@@ -13,15 +15,33 @@ class SupabaseService {
     return _instance!;
   }
 
-  /// Initialise Supabase
-  /// La persistance de session est activée par défaut via le stockage local
+  static SecureLocalStorage? _localStorage;
+
+  /// Clé de persistance de session.
+  ///
+  /// Reproduit la convention de `supabase_flutter`
+  /// (`sb-<sous-domaine>-auth-token`) afin que les sessions déjà écrites en
+  /// clair par l'ancienne implémentation soient reconnues et migrées.
+  static String get _persistSessionKey =>
+      'sb-${Uri.parse(SupabaseConfig.supabaseUrl).host.split('.').first}-auth-token';
+
+  /// Initialise Supabase.
+  ///
+  /// La session est persistée dans le **stockage chiffré** du système
+  /// (Keystore / Keychain) et non plus dans `SharedPreferences` — VUL-10.
   static Future<void> initialize() async {
+    _localStorage = SecureLocalStorage(persistSessionKey: _persistSessionKey);
+
     await Supabase.initialize(
       url: SupabaseConfig.supabaseUrl,
       anonKey: SupabaseConfig.supabaseAnonKey,
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.implicit,
+      // PKCE plutôt qu'implicit : le jeton d'accès ne transite plus dans
+      // l'URL de redirection, qui peut être interceptée par une application
+      // tierce déclarant le même schéma. Cf. AUDIT_SECURITE.md — VUL-06.
+      authOptions: FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
         autoRefreshToken: true,
+        localStorage: _localStorage,
       ),
       realtimeClientOptions: const RealtimeClientOptions(
         logLevel: RealtimeLogLevel.info,
@@ -30,13 +50,10 @@ class SupabaseService {
     );
     _client = Supabase.instance.client;
 
-    // Vérifier si une session existe
-    final session = _client?.auth.currentSession;
-    if (session != null) {
-      print('✅ Session restaurée pour: ${session.user.email}');
-    } else {
-      print('ℹ️ Aucune session active');
-    }
+    // Vérifier si une session existe. L'e-mail n'est pas journalisé (VUL-08).
+    AppLogger.d('Initialisation Supabase terminée', {
+      'sessionActive': _client?.auth.currentSession != null,
+    });
   }
 
   /// Récupère le client Supabase
@@ -66,8 +83,12 @@ class SupabaseService {
     return _client!.auth.onAuthStateChange;
   }
 
-  /// Déconnexion
+  /// Déconnexion.
+  ///
+  /// Purge également le stockage chiffré : après un `signOut`, aucun jeton ne
+  /// doit subsister sur l'appareil (VUL-10, §6.2 du guide).
   Future<void> signOut() async {
     await _client?.auth.signOut();
+    await _localStorage?.purgeAll();
   }
 }

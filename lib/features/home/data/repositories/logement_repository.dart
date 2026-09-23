@@ -1,6 +1,8 @@
 import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les logements
 class LogementRepository {
@@ -25,7 +27,11 @@ class LogementRepository {
           .map((json) => Logement.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des logements: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements',
+      );
     }
   }
 
@@ -46,8 +52,10 @@ class LogementRepository {
           .map((json) => Logement.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception(
-        'Erreur lors de la récupération des logements recommandés: $e',
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements recommandés',
       );
     }
   }
@@ -66,7 +74,11 @@ class LogementRepository {
 
       return Logement.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération du logement: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération du logement',
+      );
     }
   }
 
@@ -91,7 +103,11 @@ class LogementRepository {
           .map((json) => Logement.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la recherche des logements: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la recherche des logements',
+      );
     }
   }
 
@@ -116,8 +132,10 @@ class LogementRepository {
           .map((json) => Logement.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception(
-        'Erreur lors de la récupération des logements par divinité: $e',
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements par divinité',
       );
     }
   }
@@ -130,10 +148,10 @@ class LogementRepository {
     int limit = 20,
   }) async {
     try {
-      print('🔍 Recherche logements pour divinités IDs: $diviniteIds');
+      AppLogger.d('🔍 Recherche logements pour divinités IDs: $diviniteIds');
 
       if (diviniteIds.isEmpty) {
-        print('⚠️ Aucune divinité spécifiée');
+        AppLogger.w('⚠️ Aucune divinité spécifiée');
         return [];
       }
 
@@ -143,7 +161,7 @@ class LogementRepository {
           .select('logement_id')
           .inFilter('divinite_id', diviniteIds);
 
-      print('📊 Réponse divinite_logement: $diviniteLogementResponse');
+      AppLogger.d('📊 Réponse divinite_logement: $diviniteLogementResponse');
 
       // Extraire les IDs uniques des logements
       final logementIds = <int>{};
@@ -152,12 +170,12 @@ class LogementRepository {
         logementIds.add(logementId);
       }
 
-      print(
+      AppLogger.d(
         '🏠 ${logementIds.length} logements liés aux divinités: $logementIds',
       );
 
       if (logementIds.isEmpty) {
-        print('⚠️ Aucun logement trouvé pour ces divinités');
+        AppLogger.w('⚠️ Aucun logement trouvé pour ces divinités');
         return [];
       }
 
@@ -180,22 +198,24 @@ class LogementRepository {
           .order('created_at', ascending: false)
           .limit(limit);
 
-      print('📊 ${response.length} logements récupérés');
+      AppLogger.d('📊 ${response.length} logements récupérés');
 
       // Convertir en objets Logement
       final logements = (response as List).map((json) {
         final logement = Logement.fromJson(json as Map<String, dynamic>);
-        print('   ✅ Logement ${logement.id}: ${logement.titre}');
+        AppLogger.d('   ✅ Logement ${logement.id}: ${logement.titre}');
         return logement;
       }).toList();
 
-      print('✅ ${logements.length} logements trouvés au total');
+      AppLogger.d('✅ ${logements.length} logements trouvés au total');
       return logements;
     } catch (e, stackTrace) {
-      print('❌ Erreur: $e');
-      print('📋 Stack trace: $stackTrace');
-      throw Exception(
-        'Erreur lors de la récupération des logements par divinités: $e',
+      AppLogger.e('❌ Erreur: $e');
+      AppLogger.d('📋 Stack trace: $stackTrace');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des logements par divinités',
       );
     }
   }
@@ -230,7 +250,11 @@ class LogementRepository {
       final disponibilites = response as List;
       return disponibilites.every((dispo) => dispo['statut'] == 'disponible');
     } catch (e) {
-      throw Exception('Erreur lors de la vérification de disponibilité: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la vérification de disponibilité',
+      );
     }
   }
 }

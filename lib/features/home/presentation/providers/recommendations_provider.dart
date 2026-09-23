@@ -3,6 +3,7 @@ import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/home/data/repositories/logement_repository.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Provider pour le repository des logements
 final logementRepositoryProvider = Provider<LogementRepository>((ref) {
@@ -15,7 +16,7 @@ final logementRepositoryProvider = Provider<LogementRepository>((ref) {
 final recommendedLogementsProvider = FutureProvider<List<Logement>>((
   ref,
 ) async {
-  print('🎯 Chargement des recommandations personnalisées...');
+  AppLogger.d('🎯 Chargement des recommandations personnalisées...');
 
   // Récupérer les préférences de l'utilisateur
   final preferencesAsync = await ref.watch(
@@ -25,11 +26,11 @@ final recommendedLogementsProvider = FutureProvider<List<Logement>>((
 
   // Si pas de préférences ou pas de divinités sélectionnées
   if (preferencesAsync == null || preferencesAsync.divinitesPreferees.isEmpty) {
-    print('ℹ️ Pas de préférences → logements généraux');
+    AppLogger.d('ℹ️ Pas de préférences → logements généraux');
     return repository.getRecommendedLogements(limit: 10);
   }
 
-  print('✅ Préférences trouvées: ${preferencesAsync.divinitesPreferees}');
+  AppLogger.d('✅ Préférences trouvées: ${preferencesAsync.divinitesPreferees}');
 
   // Récupérer les logements filtrés par divinités préférées
   final logements = await repository.getLogementsByDiviniteNames(
@@ -38,7 +39,7 @@ final recommendedLogementsProvider = FutureProvider<List<Logement>>((
     limit: 20,
   );
 
-  print('📊 ${logements.length} logements recommandés');
+  AppLogger.d('📊 ${logements.length} logements recommandés');
   return logements;
 });
 
@@ -49,11 +50,8 @@ final availableLogementsProvider = FutureProvider<List<Logement>>((ref) async {
 });
 
 /// Provider pour vérifier la disponibilité d'un logement
-final logementDisponibiliteProvider =
-    FutureProvider.family<bool, LogementDisponibiliteParams>((
-      ref,
-      params,
-    ) async {
+final logementDisponibiliteProvider = FutureProvider.autoDispose
+    .family<bool, LogementDisponibiliteParams>((ref, params) async {
       final repository = ref.watch(logementRepositoryProvider);
       return repository.checkDisponibilite(
         params.logementId,

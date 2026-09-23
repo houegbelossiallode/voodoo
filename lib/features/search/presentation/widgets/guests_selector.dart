@@ -54,7 +54,10 @@ class _GuestsSelectorState extends ConsumerState<GuestsSelector> {
                   const Expanded(
                     child: Text(
                       'Nombre de voyageurs',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -73,10 +76,15 @@ class _GuestsSelectorState extends ConsumerState<GuestsSelector> {
 
               // Sélecteur de nombre avec design amélioré
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -113,7 +121,7 @@ class _GuestsSelectorState extends ConsumerState<GuestsSelector> {
                           decoration: BoxDecoration(
                             color: _nbVoyageurs > 1
                                 ? AppColors.primary
-                                : AppColors.grey.withOpacity(0.3),
+                                : AppColors.grey.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
@@ -149,7 +157,7 @@ class _GuestsSelectorState extends ConsumerState<GuestsSelector> {
                           decoration: BoxDecoration(
                             color: _nbVoyageurs < 20
                                 ? AppColors.primary
-                                : AppColors.grey.withOpacity(0.3),
+                                : AppColors.grey.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(

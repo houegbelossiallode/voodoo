@@ -39,7 +39,7 @@ class MessagesPage extends StatelessWidget {
                   Icon(
                     Icons.message_outlined,
                     size: 80,
-                    color: AppColors.grey.withOpacity(0.5),
+                    color: AppColors.grey.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(

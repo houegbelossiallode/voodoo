@@ -1,6 +1,8 @@
 import 'package:vodou/core/config/supabase_config.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/features/projet/domain/models/projet.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Repository pour gérer les projets sociaux
 class ProjetRepository {
@@ -11,8 +13,8 @@ class ProjetRepository {
   /// Récupère tous les projets actifs
   Future<List<Projet>> getAllProjets() async {
     try {
-      print('🔍 [ProjetRepository] Récupération de tous les projets...');
-      
+      AppLogger.d('🔍 [ProjetRepository] Récupération de tous les projets...');
+
       // Essayer d'abord la requête complète avec jointure
       dynamic response;
       try {
@@ -23,21 +25,29 @@ class ProjetRepository {
               categorie:${SupabaseConfig.categoriesTable}(libelle)
             ''');
       } catch (joinError) {
-        print('⚠️ Jointure catégorie a échoué: $joinError. Repli sur requête simple.');
+        AppLogger.w(
+          '⚠️ Jointure catégorie a échoué: $joinError. Repli sur requête simple.',
+        );
         response = await _supabaseService.client
             .from(SupabaseConfig.projetsTable)
             .select('*');
       }
 
-      final list = (response as List).map((json) => Projet.fromJson(json as Map<String, dynamic>)).toList();
-      
-      // Filtrer côté Dart pour être insensible à la casse d'actif (OUI / oui / null)
-      final filteredList = list.where((p) => p.actif.toUpperCase() != 'NON').toList();
+      final list = (response as List)
+          .map((json) => Projet.fromJson(json as Map<String, dynamic>))
+          .toList();
 
-      print('✅ [ProjetRepository] ${filteredList.length} projets trouvés (total: ${list.length})');
+      // Filtrer côté Dart pour être insensible à la casse d'actif (OUI / oui / null)
+      final filteredList = list
+          .where((p) => p.actif.toUpperCase() != 'NON')
+          .toList();
+
+      AppLogger.d(
+        '✅ [ProjetRepository] ${filteredList.length} projets trouvés (total: ${list.length})',
+      );
       return filteredList;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des projets: $e');
+      AppLogger.e('❌ Erreur lors de la récupération des projets: $e');
       return [];
     }
   }
@@ -56,7 +66,7 @@ class ProjetRepository {
 
       return Projet.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la récupération du projet: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la récupération du projet');
     }
   }
 
@@ -77,8 +87,10 @@ class ProjetRepository {
           .map((json) => Projet.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception(
-        'Erreur lors de la récupération des projets par catégorie: $e',
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des projets par catégorie',
       );
     }
   }
@@ -103,7 +115,11 @@ class ProjetRepository {
           .map((json) => Contribution.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des contributions: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des contributions',
+      );
     }
   }
 
@@ -126,7 +142,11 @@ class ProjetRepository {
         'nb_contributions': contributions.length,
       };
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des statistiques: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des statistiques',
+      );
     }
   }
 
@@ -143,7 +163,11 @@ class ProjetRepository {
           .map((json) => Categorie.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des catégories: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des catégories',
+      );
     }
   }
 }

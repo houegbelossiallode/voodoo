@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vodou/core/router/app_router.dart';
 import 'package:vodou/features/home/presentation/pages/main_page.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 /// Page pour afficher les réservations de l'utilisateur
 class MyReservationsPage extends ConsumerWidget {
@@ -19,9 +20,7 @@ class MyReservationsPage extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: const CustomAppBar(
-        title: 'Mes réservations',
-      ),
+      appBar: const CustomAppBar(title: 'Mes réservations'),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
@@ -50,7 +49,7 @@ class MyReservationsPage extends ConsumerWidget {
                           Icon(
                             Icons.calendar_today_outlined,
                             size: 80,
-                            color: AppColors.grey.withOpacity(0.5),
+                            color: AppColors.grey.withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 16),
                           const Text(
@@ -68,7 +67,8 @@ class MyReservationsPage extends ConsumerWidget {
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
                             onPressed: () {
-                              ref.read(bottomNavIndexProvider.notifier).state = 0;
+                              ref.read(bottomNavIndexProvider.notifier).state =
+                                  0;
                               if (Navigator.of(context).canPop()) {
                                 Navigator.of(context).pop();
                               }
@@ -79,7 +79,10 @@ class MyReservationsPage extends ConsumerWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -116,7 +119,7 @@ class MyReservationsPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Erreur: ${error.toString()}',
+                    ErrorMapper.toMessage(error),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.error),
                   ),
@@ -134,7 +137,7 @@ class MyReservationsPage extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>
-            Center(child: Text('Erreur: ${error.toString()}')),
+            Center(child: Text(ErrorMapper.toMessage(error))),
       ),
     );
   }
@@ -187,7 +190,7 @@ class _ReservationCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: statusColor),
                     ),

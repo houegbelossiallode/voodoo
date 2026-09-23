@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vodou/features/messaging/domain/models/chat_message.dart';
 import 'package:vodou/features/messaging/domain/models/conversation_model.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 class MessagingRepository {
   final SupabaseClient _supabase;
@@ -25,24 +27,35 @@ class MessagingRepository {
           .map((json) => ConversationModel.fromJson(json))
           .toList();
 
-      // Charger le dernier message et le nombre de messages non lus pour chaque conversation
-      for (var conversation in conversations) {
-        final dernierMessage = await _getDernierMessage(conversation.id);
-        final messagesNonLus = await _getMessagesNonLusCount(
-          conversation.id,
-          userId,
-        );
+      // Dernier message et compteur de non-lus, chargés en parallèle.
+      //
+      // L'implémentation précédente enchaînait 2N+1 requêtes SÉQUENTIELLES
+      // (41 aller-retours pour 20 conversations) et utilisait `indexOf` dans
+      // la boucle, soit une complexité O(n²) — cf. AUDIT_SECURITE.md, VUL-18.
+      //
+      // TODO(perf): remplacer ces 2N requêtes par une vue SQL agrégeant
+      // `dernier_message` et `messages_non_lus`, pour ne plus faire qu'un
+      // seul aller-retour réseau.
+      final enrichies = await Future.wait(
+        conversations.map((conversation) async {
+          final results = await Future.wait([
+            _getDernierMessage(conversation.id),
+            _getMessagesNonLusCount(conversation.id, userId),
+          ]);
+          return conversation.copyWith(
+            dernierMessage: results[0] as ChatMessage?,
+            messagesNonLus: results[1] as int,
+          );
+        }),
+      );
 
-        conversations[conversations.indexOf(conversation)] = conversation
-            .copyWith(
-              dernierMessage: dernierMessage,
-              messagesNonLus: messagesNonLus,
-            );
-      }
-
-      return conversations;
+      return enrichies;
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des conversations: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des conversations',
+      );
     }
   }
 
@@ -111,12 +124,16 @@ class MessagingRepository {
           ''')
           .single();
 
-      print('📝 Conversation créée: $newConversation');
+      AppLogger.d('📝 Conversation créée: $newConversation');
       return ConversationModel.fromJson(newConversation);
     } catch (e, stackTrace) {
-      print('❌ Erreur création conversation: $e');
-      print('📍 Stack trace: $stackTrace');
-      throw Exception('Erreur lors de la création de la conversation: $e');
+      AppLogger.e('❌ Erreur création conversation: $e');
+      AppLogger.d('📍 Stack trace: $stackTrace');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la création de la conversation',
+      );
     }
   }
 
@@ -136,7 +153,11 @@ class MessagingRepository {
           .map((json) => ChatMessage.fromJson(json))
           .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des messages: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'la récupération des messages',
+      );
     }
   }
 
@@ -171,7 +192,7 @@ class MessagingRepository {
 
       return ChatMessage.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de l\'envoi du message: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'l\'envoi du message');
     }
   }
 
@@ -183,7 +204,7 @@ class MessagingRepository {
           .update({'is_read': true})
           .eq('id', messageId);
     } catch (e) {
-      throw Exception('Erreur lors du marquage du message: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'marquage du message');
     }
   }
 
@@ -197,7 +218,11 @@ class MessagingRepository {
           .neq('sender_id', userId)
           .eq('is_read', false);
     } catch (e) {
-      throw Exception('Erreur lors du marquage de la conversation: $e');
+      throw ErrorMapper.map(
+        e,
+        StackTrace.current,
+        'marquage de la conversation',
+      );
     }
   }
 
@@ -285,7 +310,7 @@ class MessagingRepository {
             titreLogement.contains(searchQuery);
       }).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la recherche: $e');
+      throw ErrorMapper.map(e, StackTrace.current, 'la recherche');
     }
   }
 }

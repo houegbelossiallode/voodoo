@@ -15,7 +15,7 @@ final allProjetsProvider = FutureProvider<List<Projet>>((ref) async {
 });
 
 /// Provider pour un projet spécifique
-final projetByIdProvider = FutureProvider.family<Projet?, int>((
+final projetByIdProvider = FutureProvider.autoDispose.family<Projet?, int>((
   ref,
   projetId,
 ) async {
@@ -24,24 +24,22 @@ final projetByIdProvider = FutureProvider.family<Projet?, int>((
 });
 
 /// Provider pour les projets par catégorie
-final projetsByCategorieProvider = FutureProvider.family<List<Projet>, int>((
-  ref,
-  categorieId,
-) async {
-  final repository = ref.read(projetRepositoryProvider);
-  return repository.getProjetsByCategorie(categorieId);
-});
+final projetsByCategorieProvider = FutureProvider.autoDispose
+    .family<List<Projet>, int>((ref, categorieId) async {
+      final repository = ref.read(projetRepositoryProvider);
+      return repository.getProjetsByCategorie(categorieId);
+    });
 
 /// Provider pour les contributions d'un projet
-final projetContributionsProvider =
-    FutureProvider.family<List<Contribution>, int>((ref, projetId) async {
+final projetContributionsProvider = FutureProvider.autoDispose
+    .family<List<Contribution>, int>((ref, projetId) async {
       final repository = ref.read(projetRepositoryProvider);
       return repository.getProjetContributions(projetId);
     });
 
 /// Provider pour les statistiques d'un projet
-final projetStatisticsProvider =
-    FutureProvider.family<Map<String, dynamic>, int>((ref, projetId) async {
+final projetStatisticsProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, int>((ref, projetId) async {
       final repository = ref.read(projetRepositoryProvider);
       return repository.getProjetStatistics(projetId);
     });

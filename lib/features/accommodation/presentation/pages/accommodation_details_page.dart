@@ -22,6 +22,8 @@ import 'package:vodou/features/accommodation/domain/models/equipement.dart';
 import 'package:vodou/features/accommodation/domain/models/avis.dart';
 import 'package:vodou/features/accommodation/domain/models/host_info.dart';
 import 'package:vodou/features/booking/presentation/widgets/availability_calendar_widget.dart';
+import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/core/error/error_mapper.dart';
 
 class AccommodationDetailsPage extends ConsumerWidget {
   final int accommodationId;
@@ -46,7 +48,7 @@ class AccommodationDetailsPage extends ConsumerWidget {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) => Scaffold(
         appBar: const CustomAppBar(title: 'Erreur'),
-        body: Center(child: Text('Erreur: $error')),
+        body: Center(child: Text(ErrorMapper.toMessage(error))),
       ),
       data: (logement) {
         final hostAsync = ref.watch(hostInfoProvider(logement.userId));
@@ -252,10 +254,14 @@ class AccommodationDetailsPage extends ConsumerWidget {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.3),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: const Row(
@@ -448,7 +454,7 @@ class AccommodationDetailsPage extends ConsumerWidget {
           color: AppColors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -567,7 +573,7 @@ class AccommodationDetailsPage extends ConsumerWidget {
         await launchUrl(url, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
-      print('⚠️ Erreur d\'ouverture Maps: $e');
+      AppLogger.w('⚠️ Erreur d\'ouverture Maps: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

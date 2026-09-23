@@ -15,6 +15,7 @@ import 'package:vodou/features/messaging/presentation/pages/chat_page.dart';
 import 'package:vodou/features/messaging/presentation/pages/conversations_page.dart';
 import 'package:vodou/features/festivals/presentation/pages/festival_selection_page.dart';
 import 'package:vodou/features/home/domain/models/logement.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 class AppRouter {
   static const String login = '/';
@@ -53,14 +54,14 @@ class AppRouter {
           final authRepo = AuthRepository();
           final userProfile = await authRepo.getCurrentUser();
           if (userProfile == null) {
-            print(
+            AppLogger.w(
               '⚠️ Session Supabase active mais aucun profil dans la table users. Suspension de la redirection auto.',
             );
             return null;
           }
         }
 
-        print(
+        AppLogger.d(
           '🔄 Utilisateur connecté avec profil, redirection vers festival-selection',
         );
         return festivalSelection;
@@ -68,7 +69,7 @@ class AppRouter {
 
       // Si l'utilisateur n'est pas connecté et n'est pas sur une page d'auth
       if (!isAuthenticated && !isGoingToAuth) {
-        print('⚠️ Utilisateur non connecté, redirection vers login');
+        AppLogger.w('⚠️ Utilisateur non connecté, redirection vers login');
         return login;
       }
 

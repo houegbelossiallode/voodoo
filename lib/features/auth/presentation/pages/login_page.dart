@@ -10,10 +10,11 @@ import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:vodou/features/auth/presentation/providers/first_time_visitor_provider.dart';
 import 'package:vodou/features/auth/presentation/widgets/google_role_selection_dialog.dart';
 import 'package:vodou/features/preferences/presentation/providers/preferences_provider.dart';
+import 'package:vodou/core/utils/app_logger.dart';
 
 /// Page de connexion simple avec email et mot de passe
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -39,10 +40,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _checkPendingNewOAuthUser() async {
     final supabaseUser = SupabaseService.instance.currentUser;
     if (supabaseUser != null) {
-      final userProfile =
-          await ref.read(authRepositoryProvider).getCurrentUser();
+      final userProfile = await ref
+          .read(authRepositoryProvider)
+          .getCurrentUser();
       if (userProfile == null && mounted) {
-        print(
+        AppLogger.d(
           '🔍 Auth active sans profil local, affichage du dialogue de rôle...',
         );
         final String email = supabaseUser.email ?? '';
@@ -50,11 +52,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             (supabaseUser.userMetadata?['given_name'] as String? ?? '').trim();
         final String metaFamilyName =
             (supabaseUser.userMetadata?['family_name'] as String? ?? '').trim();
-        final String fullName = (supabaseUser.userMetadata?['full_name'] ??
-                supabaseUser.userMetadata?['name'] ??
-                '')
-            .toString()
-            .trim();
+        final String fullName =
+            (supabaseUser.userMetadata?['full_name'] ??
+                    supabaseUser.userMetadata?['name'] ??
+                    '')
+                .toString()
+                .trim();
 
         String prenom = metaGivenName;
         String nom = metaFamilyName;
@@ -89,7 +92,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           if (selectedRole.libelle.toLowerCase() == 'visiteur') {
             ref.read(justSignedUpAsVisitorProvider.notifier).state = true;
           }
-          await ref.read(currentUserProvider.notifier).completeOAuthProfile(
+          await ref
+              .read(currentUserProvider.notifier)
+              .completeOAuthProfile(
                 supabaseId: supabaseUser.id,
                 email: email,
                 nom: nom,
@@ -120,13 +125,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      print('📝 Début de la connexion...');
-      await ref.read(currentUserProvider.notifier).signInWithEmail(
+      AppLogger.d('📝 Début de la connexion...');
+      await ref
+          .read(currentUserProvider.notifier)
+          .signInWithEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
 
-      print('✅ Connexion réussie!');
+      AppLogger.d('✅ Connexion réussie!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -155,7 +162,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         await _handleSuccessfulLogin();
       }
     } catch (e) {
-      print('❌ Erreur de connexion: $e');
+      AppLogger.e('❌ Erreur de connexion: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -190,8 +197,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      final result =
-          await ref.read(currentUserProvider.notifier).signInWithGoogle();
+      final result = await ref
+          .read(currentUserProvider.notifier)
+          .signInWithGoogle();
 
       if (result == null) {
         // Annulé par l'utilisateur au niveau Google
@@ -218,7 +226,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             }
 
             // Enregistrer le profil complet dans Supabase
-            await ref.read(currentUserProvider.notifier).completeOAuthProfile(
+            await ref
+                .read(currentUserProvider.notifier)
+                .completeOAuthProfile(
                   supabaseId: result.supabaseId!,
                   email: result.email!,
                   nom: result.nom!,
@@ -242,7 +252,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
       }
     } catch (e) {
-      print('❌ Erreur Google: $e');
+      AppLogger.e('❌ Erreur Google: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -280,7 +290,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final user = userAsync.value;
 
     if (user == null) {
-      print('⚠️ Utilisateur non trouvé après connexion');
+      AppLogger.w('⚠️ Utilisateur non trouvé après connexion');
       if (mounted) {
         context.go(AppRouter.festivalSelection, extra: true);
       }
@@ -289,31 +299,35 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     // Vérifier le rôle de l'utilisateur
     final userRole = user.role?.toLowerCase() ?? '';
-    print('👤 Rôle utilisateur: $userRole');
+    AppLogger.d('👤 Rôle utilisateur: $userRole');
 
     // Seuls les visiteurs passent par le questionnaire
     if (userRole == 'visiteur') {
       try {
-        print('🔍 Vérification des préférences utilisateur...');
+        AppLogger.d('🔍 Vérification des préférences utilisateur...');
         final hasCompleted = await ref.read(
           hasCompletedQuestionnaireProvider.future,
         );
 
-        print('📊 hasCompleted = $hasCompleted');
+        AppLogger.d('📊 hasCompleted = $hasCompleted');
 
         if (!mounted) return;
 
         if (!hasCompleted) {
-          print('🎉 Redirection vers festival-selection (isFirstTime=true)');
+          AppLogger.d(
+            '🎉 Redirection vers festival-selection (isFirstTime=true)',
+          );
           context.go(AppRouter.festivalSelection, extra: true);
         } else {
-          print('🎉 Redirection vers festival-selection (isFirstTime=false)');
+          AppLogger.d(
+            '🎉 Redirection vers festival-selection (isFirstTime=false)',
+          );
           context.go(AppRouter.festivalSelection, extra: false);
         }
       } catch (e) {
-        print('⚠️ Erreur vérification préférences: $e');
+        AppLogger.w('⚠️ Erreur vérification préférences: $e');
         if (mounted) {
-          print(
+          AppLogger.d(
             '🎉 Redirection vers festival-selection par défaut (isFirstTime=true)',
           );
           context.go(AppRouter.festivalSelection, extra: true);
@@ -322,7 +336,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } else {
       // Hôtes, administrateurs, etc. vont directement à la sélection de festival
       if (mounted) {
-        print(
+        AppLogger.d(
           '🎉 Redirection vers festival-selection ($userRole, isFirstTime=false)',
         );
         context.go(AppRouter.festivalSelection, extra: false);
