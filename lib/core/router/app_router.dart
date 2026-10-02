@@ -5,6 +5,7 @@ import 'package:vodou/features/auth/data/repositories/auth_repository.dart';
 import 'package:vodou/features/auth/presentation/pages/login_page.dart';
 import 'package:vodou/features/auth/presentation/pages/signup_page.dart';
 import 'package:vodou/features/auth/presentation/pages/forgot_password_page.dart';
+import 'package:vodou/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:vodou/features/auth/presentation/pages/email_confirmation_page.dart';
 import 'package:vodou/features/home/presentation/pages/main_page_wrapper.dart';
 import 'package:vodou/features/accommodation/presentation/pages/accommodation_details_page.dart';
@@ -21,6 +22,7 @@ class AppRouter {
   static const String login = '/';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
   static const String emailConfirmation = '/email-confirmation';
   static const String festivalSelection = '/festival-selection';
   static const String questionnaire = '/questionnaire';
@@ -94,6 +96,11 @@ class AppRouter {
         path: forgotPassword,
         name: 'forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: resetPassword,
+        name: 'reset-password',
+        builder: (context, state) => const ResetPasswordPage(),
       ),
       GoRoute(
         path: emailConfirmation,

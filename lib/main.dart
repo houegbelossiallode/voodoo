@@ -7,6 +7,7 @@ import 'package:vodou/core/constants/app_strings.dart';
 import 'package:vodou/core/services/supabase_service.dart';
 import 'package:vodou/core/config/env.dart';
 import 'package:vodou/core/utils/app_logger.dart';
+import 'package:vodou/features/auth/presentation/providers/auth_provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
@@ -49,8 +50,30 @@ void main() async {
   runApp(const ProviderScope(child: VodooHostApp()));
 }
 
-class VodooHostApp extends StatelessWidget {
+class VodooHostApp extends ConsumerStatefulWidget {
   const VodooHostApp({super.key});
+
+  @override
+  ConsumerState<VodooHostApp> createState() => _VodooHostAppState();
+}
+
+class _VodooHostAppState extends ConsumerState<VodooHostApp> {
+  @override
+  void initState() {
+    super.initState();
+    _listenToAuthNavigation();
+  }
+
+  void _listenToAuthNavigation() {
+    authNavigationController.stream.listen((event) {
+      if (event == AuthNavigationEvent.passwordRecovery) {
+        AppLogger.d('🔑 Navigation vers reset-password détectée');
+        if (mounted) {
+          AppRouter.router.push(AppRouter.resetPassword);
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

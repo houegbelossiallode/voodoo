@@ -6,6 +6,21 @@ import 'package:vodou/features/auth/data/repositories/auth_repository.dart';
 import 'package:vodou/features/auth/domain/models/user.dart' as app_user;
 import 'package:vodou/core/utils/app_logger.dart';
 
+/// Stream global pour les événements de navigation d'auth
+final authNavigationStreamProvider = StreamProvider<AuthNavigationEvent>((ref) {
+  final controller = StreamController<AuthNavigationEvent>();
+  ref.onDispose(() => controller.close());
+  return controller.stream;
+});
+
+/// Événements de navigation d'auth
+enum AuthNavigationEvent {
+  passwordRecovery,
+}
+
+/// Controller pour les événements de navigation d'auth
+final authNavigationController = StreamController<AuthNavigationEvent>.broadcast();
+
 /// Provider pour le repository d'authentification
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
@@ -67,6 +82,8 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
           AppLogger.d(
             '🔑 AuthProvider: Événement de récupération de mot de passe reçu',
           );
+          // Émettre l'événement de navigation pour rediriger vers la page de reset
+          authNavigationController.add(AuthNavigationEvent.passwordRecovery);
           // En cas de récupération de mot de passe, tenter le chargement mais ne pas bloquer l'état si non trouvé
           try {
             final user = await _authRepository.getCurrentUser();
@@ -83,6 +100,28 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<app_user.User?>> {
         AppLogger.e('❌ AuthProvider: Erreur dans le stream auth: $error');
       },
     );
+  }
+
+  /// Traite un deep link entrant pour la récupération de mot de passe
+  /// À appeler depuis MainActivity quand l'app est ouverte via deep link
+  static Future<void> handleDeepLink(String deepLink) async {
+    AppLogger.d('🔗 Deep link reçu: $deepLink');
+    
+    final uri = Uri.parse(deepLink);
+    
+    // Vérifier si c'est un lien de récupération de mot de passe
+    // Avec PKCE, le lien peut contenir des paramètres comme code, code_verifier, etc.
+    if (uri.queryParameters.containsKey('code') || 
+        uri.queryParameters.containsKey('access_token') ||
+        uri.queryParameters.containsKey('token')) {
+      AppLogger.d('🔑 Lien de récupération de mot de passe détecté');
+      
+      // Émettre l'événement de navigation
+      authNavigationController.add(AuthNavigationEvent.passwordRecovery);
+      
+      // Laisser Supabase traiter le deep link automatiquement
+      // Le SDK Supabase Flutter va extraire les tokens et déclencher passwordRecovery
+    }
   }
 
   Future<void> _loadCurrentUser() async {

@@ -39,7 +39,10 @@ class SupabaseService {
       // l'URL de redirection, qui peut être interceptée par une application
       // tierce déclarant le même schéma. Cf. AUDIT_SECURITE.md — VUL-06.
       authOptions: FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
+        // Temporairement désactivé PKCE pour tester le flux de récupération de mot de passe
+        // PKCE change le format des liens et empêche l'événement passwordRecovery de se déclencher
+        // TODO: Réactiver PKCE après avoir implémenté une gestion manuelle des deep links de récupération
+        authFlowType: AuthFlowType.implicit,
         autoRefreshToken: true,
         localStorage: _localStorage,
       ),
